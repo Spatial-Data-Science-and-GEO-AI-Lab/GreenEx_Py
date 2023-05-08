@@ -1,4 +1,4 @@
-**get_landcover_percentages(point_of_interest_file, landcover_raster_file, buffer_dist=None, buffer_type=None,network_file=None, network_type=None, trip_time=None, travel_speed=None)**
+**get_landcover_percentages(point_of_interest_file, landcover_raster_file, buffer_dist=None, buffer_type=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
 
 > Retrieve the percentage of area covered by each land cover class for an area or points of interest.
 
@@ -6,9 +6,9 @@
 
 >> Parameters: 
 
->> - point_of_interest_file *(string)* – The absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
 
->> - landcover_raster_file *(string)* – The absolute or relative path to the raster file containing a land cover classification map, where each pixel is assigned a land cover class.
+>> - landcover_raster_file *(string)* – the absolute or relative path to the raster file containing a land cover classification map, where each pixel is assigned a land cover class.
 
 >> - buffer_dist *(int)* – to be defined in case point_of_interest_file contains point geometries rather than polygon geometries, surrounding distance in meters to consider for land cover type percentage calculation.
 
@@ -22,8 +22,10 @@
 
 >> - travel_speed *(int)* – to be defined in case point_of_interest_file contains point geometries rather than polygon geometries and buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type.
 
+>> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
+
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including column for land cover type percentages.
+>>> Dataframe as obtained from point_of_interest_file including columns for land cover class percentages.
 
 >>Return type:	
 >>> Geodataframe

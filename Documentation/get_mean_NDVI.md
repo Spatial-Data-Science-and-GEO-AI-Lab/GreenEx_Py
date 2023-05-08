@@ -22,6 +22,8 @@
 
 >> - travel_speed *(int)* – to be defined in case point_of_interest_file contains point geometries rather than polygon geometries and buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type.
 
+>> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
+
 >>Returns:	
 >>> Dataframe as obtained from point_of_interest_file including column for mean NDVI value(s).
 
