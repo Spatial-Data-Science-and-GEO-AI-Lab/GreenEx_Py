@@ -1,4 +1,4 @@
-**get_greencover_percentage(point_of_interest_file, greenarea_vector_file, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
+**get_greencover_percentage(point_of_interest_file, greenspace_vector_file, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
 
 > Retrieve the percentage of area covered by greenspace for areas or points of interest.
 
@@ -8,7 +8,7 @@
 
 >> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute the greenspace cover percentage.
 
->> - greenarea_vector_file *(string)* – the absolute or relative path to the vector file containing polygons of greenspaces such as tree canopies and parks. 
+>> - greenspace_vector_file *(string)* – the absolute or relative path to the vector file containing polygons of greenspaces such as tree canopies and parks. 
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the buffer distance should be considered.
 
