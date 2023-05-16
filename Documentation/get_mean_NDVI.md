@@ -1,4 +1,4 @@
-**get_mean_NDVI(point_of_interest_file, ndvi_raster_file, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None)**
+**get_mean_NDVI(point_of_interest_file, ndvi_raster_file, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None)**
 
 > Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas or points of interest.
 
@@ -9,6 +9,8 @@
 >> - point_of_interest_file *(string)* – The absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
 
 >> - ndvi_raster_file *(string)* – The absolute or relative path to the file containing the NDVI values in raster format. 
+
+>> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the one specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the buffer distance should be considered.
 

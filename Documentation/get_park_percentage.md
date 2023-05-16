@@ -1,14 +1,16 @@
-**get_greencover_percentage(point_of_interest_file, greenspace_vector_file, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
+**get_park_percentage(point_of_interest_file, park_vector_file, crs_epsg=None, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
 
-> Retrieve the percentage of area covered by greenspace for areas or points of interest.
+> Retrieve the percentage of area covered by parks for areas or points of interest.
 
-> Function to calculate the percentage of area covered by greenspace surrounding geographic locations or within geographic areas. The surroundings can be defined by a euclidian (straight-line) or network (travel distance considering transportation infrastructure) buffer distance. 
+> Function to calculate the percentage of area covered by parks surrounding geographic locations or within geographic areas. The surroundings can be defined by a euclidian (straight-line) or network (travel distance considering transportation infrastructure) buffer distance. 
 
 >> Parameters: 
 
 >> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute the greenspace cover percentage.
 
->> - greenspace_vector_file *(string)* – the absolute or relative path to the vector file containing polygons of greenspaces such as tree canopies and parks. 
+>> - park_vector_file *(string)* – optional, the absolute or relative path to the vector file containing tree canopy data. Note that geometries should be polygon or multipolygon. In case no file is provided, park data will be retrieved from OSM.
+
+>> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the one specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the buffer distance should be considered.
 
@@ -25,7 +27,7 @@
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including column for greenspace cover percentage. Dataframe will also be written to new file in specified directory (see output_dir argument). 
+>>> Dataframe as obtained from point_of_interest_file including column for park cover percentage. Dataframe will also be written to new file in specified directory (see output_dir argument). 
 
 >>Return type:	
 >>> Geodataframe

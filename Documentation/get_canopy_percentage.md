@@ -1,14 +1,14 @@
-**get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs_epsg=None, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
+**get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
 
-> Retrieve the percentage of area covered by each land cover class for areas or points of interest.
+> Retrieve the percentage of area covered by tree canopy for areas or points of interest.
 
-> Function to calculate the percentage of area covered by each land cover class surrounding geographic locations or within geographic areas. The surroundings can be defined by a euclidian (straight-line) or network (travel distance considering transportation infrastructure) buffer distance. 
+> Function to calculate the percentage of area covered by tree canopy surrounding geographic locations or within geographic areas. The surroundings can be defined by a euclidian (straight-line) or network (travel distance considering transportation infrastructure) buffer distance. 
 
 >> Parameters: 
 
->> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute the greenspace cover percentage.
 
->> - landcover_raster_file *(string)* – the absolute or relative path to the raster file containing a land cover classification map, where each pixel is assigned a land cover class.
+>> - canopy_vector_file *(string)* – the absolute or relative path to the vector file containing tree canopy data. Note that geometries should be polygon or multipolygon.  
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the one specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
@@ -27,7 +27,7 @@
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including columns for land cover class percentages. Dataframe will also be written to new file in specified directory (see output_dir argument). 
+>>> Dataframe as obtained from point_of_interest_file including column for tree canopy cover percentage. Dataframe will also be written to new file in specified directory (see output_dir argument). 
 
 >>Return type:	
 >>> Geodataframe
