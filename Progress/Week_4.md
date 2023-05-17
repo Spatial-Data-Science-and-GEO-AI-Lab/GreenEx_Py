@@ -1,4 +1,4 @@
-**Progress report - Week 3 (15/05/23 - 19/05/23)**
+**Progress report - Week 4 (15/05/23 - 19/05/23)**
 
 Done:
 - Include EPSG argument in all functions, if not specified and CRS of PoI file is geographic, CRS will be transformed to EPSG 3395 by default (and print warning)
