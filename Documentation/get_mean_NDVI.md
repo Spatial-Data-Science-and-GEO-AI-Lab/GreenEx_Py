@@ -1,4 +1,4 @@
-**get_mean_NDVI(point_of_interest_file, ndvi_raster_file, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None)**
+**get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd(), year=datetime.now().year)**
 
 > Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas or points of interest.
 
@@ -26,7 +26,7 @@
 
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
 
->> - year *(int)* – optional, may be defined if no raster file is provided. The year for which to retrieve satellite images using the planetary computer. 
+>> - year *(int)* – optional, may be defined if no raster file is provided. The year for which to retrieve satellite images using the planetary computer. If not specified while raster file is not provided, the current year will be used by default.
 
 >>Returns:	
 >>> Dataframe as obtained from point_of_interest_file including column for mean NDVI value(s). Dataframe will also be written to new file in specified directory (see output_dir argument). 
