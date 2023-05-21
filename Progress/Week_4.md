@@ -6,6 +6,7 @@ Done:
 - Modify base accessibility function - retrieve park/network for total bounds of PoI, define park fake entry points and include destination argument 'centroids'/'entrance' (used a slightly different approach - elaborate Monday?)
  - Update documentation
  - Fixing mistakes
+ - Integrate planetary computer in NDVI function in case user does not provide raster file
 
 In progress:
 - Looking into visibility

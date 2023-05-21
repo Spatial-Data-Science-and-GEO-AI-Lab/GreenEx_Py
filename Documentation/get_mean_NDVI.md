@@ -6,9 +6,9 @@
 
 >> Parameters: 
 
->> - point_of_interest_file *(string)* – The absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
 
->> - ndvi_raster_file *(string)* – The absolute or relative path to the file containing the NDVI values in raster format. 
+>> - ndvi_raster_file *(string)* – optional, the absolute or relative path to the file containing the NDVI values in raster format. If not provided, the NDVI raster will be obtained by using satellite images from the planetary computer.  
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the one specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
@@ -25,6 +25,8 @@
 >> - travel_speed *(int)* – to be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type.
 
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
+
+>> - year *(int)* – optional, may be defined if no raster file is provided. The year for which to retrieve satellite images using the planetary computer. 
 
 >>Returns:	
 >>> Dataframe as obtained from point_of_interest_file including column for mean NDVI value(s). Dataframe will also be written to new file in specified directory (see output_dir argument). 
