@@ -12,7 +12,7 @@
     - [Accessibility](#Accessibility)
         - [Shortest distance to park](#Shortest-distance-to-park)
     - [Visibility](#Visibility)
-    - [Sources](#Sources)
+- [Sources](#Sources)
 
 # Installation
 
