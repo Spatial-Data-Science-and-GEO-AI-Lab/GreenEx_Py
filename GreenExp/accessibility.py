@@ -14,6 +14,10 @@ import shapely.geometry as sg
 import networkx as nx
 import momepy
 
+# Date and time manipulation
+from time import time
+from datetime import timedelta
+
 ##### MAIN FUNCTIONS
 def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, destination="centroids", 
                                network_file=None, network_type=None, output_dir=os.getcwd()):
@@ -54,7 +58,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     if destination not in ["centroids", "entrance"]:
         raise TypeError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
 
-    ### Step 2: Obtain bounding box in which all points of interest are located, including 1000m buffer to account for edge effects
+    ### Step 2: Obtain bounding box in which all points of interest are located, including target_dist + 50% buffer to account for edge effects
     poi_polygon = sg.box(*poi.total_bounds).buffer(target_dist*1.5)
     polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
     wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326
@@ -68,6 +72,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
             print("Done \n")
     else:
         print(f"Retrieving parks within total bounds of point(s) of interest, extended by a {target_dist*1.5}m buffer to account for edge effects...")
+        start_park_retrieval = time()
         # Tags seen as Urban Greenspace (UGS) require the following:
         # 1. Tag represent an area
         # 2. The area is outdoor
@@ -77,7 +82,9 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         park_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
         park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
         park_src.to_crs(f"EPSG:{epsg}", inplace=True)
-        print("Done \n")
+        end_park_retrieval = time()
+        elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
     
     if destination == "centroids":
         park_src['centroid'] = park_src['geometry'].centroid
@@ -110,14 +117,20 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
             raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
             
         print(f"Retrieving infrastructure network within total bounds of point(s) of interest, extended by a {target_dist*1.5}m buffer to account for edge effects...")
+        start_network_retrieval = time()
         network_graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type)
         network_graph = ox.project_graph(network_graph, to_crs=f"EPSG:{epsg}")
-        print("Done \n")
+        end_network_retrieval = time()
+        elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
     
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
+    start_calc = time()
     poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, network_graph=network_graph, park_src=park_src, destination=destination)), axis=1)
-    print("Done \n")
+    end_calc = time()
+    elapsed_calc = end_calc - start_calc
+    print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
     
     print("Writing results to new geopackage file in specified directory...")
     input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))

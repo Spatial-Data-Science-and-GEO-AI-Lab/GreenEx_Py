@@ -23,7 +23,8 @@ import planetary_computer
 import odc.stac
 
 # Date and time manipulation
-from datetime import datetime
+from datetime import datetime, timedelta
+from time import time
 
 # Progress tracking
 from tqdm import tqdm
@@ -62,7 +63,8 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     # Retrieve NDVI raster, use planetary computer if not provided by user 
     if ndvi_raster_file is None:
         print("Retrieving NDVI raster through planetary computer...")
-        aoi_source = sg.box(*poi.total_bounds).buffer(buffer_dist*1.1)
+        start_ndvi_retrieval = time()
+        aoi_source = sg.box(*poi.total_bounds).buffer(buffer_dist)
         bounding_box_pc = transform(epsg_transformer.transform, aoi_source).bounds  # transform CRS to comply with planetary computer requirements
         bounding_box_pc = [bounding_box_pc[1], bounding_box_pc[0], bounding_box_pc[3], bounding_box_pc[2]] # Swap coords order to match with planetary computer format
 
@@ -85,7 +87,9 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         ndvi = xrspatial.multispectral.ndvi(selected_item_data['nir'], selected_item_data['red'])
         # Reproject to original poi CRS
         ndvi_src = ndvi.rio.reproject(f"EPSG:{epsg}", resampling= Resampling.nearest, nodata=np.nan)
-        print("Done \n")
+        end_ndvi_retrieval = time()
+        elapsed_ndvi_retrieval = end_ndvi_retrieval - start_ndvi_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_ndvi_retrieval))} \n")
     else:
         ndvi_src = rioxarray.open_rasterio(ndvi_raster_file)
         if not ndvi_src.rio.crs.to_epsg() == epsg:
@@ -132,22 +136,31 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                 if not isinstance(trip_time, int) or (not trip_time > 0):
                     raise TypeError("Please make sure that the trip time is set as a positive integer")
 
+                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+                start_network_retrieval = time()
+                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
+                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
+                wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
+                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
+                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
+                end_network_retrieval = time()
+                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+                    
                 if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that network can be retrieved...")
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                     poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")             
-        
+                    print("Done \n")            
+
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
                 aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc = 'Retrieving network for point(s) of interest'):
-                    latlon = epsg_transformer.transform(geom.x, geom.y) # Transform point geometry into latlon for OSMnx
-                    graph = ox.graph_from_point(latlon, network_type=network_type, dist=buffer_dist) # Retrieve street network for desired network type and buffer distance surrounding poi
-                    graph = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
-                    center_node = ox.distance.nearest_nodes(graph, geom.x, geom.y) # Find node which is closest to point location as base for next steps
-                    for _, _, _, data in graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
+                for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
+                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) # Find node which is closest to point location as base for next steps
+                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
                         data["time"] = data["length"] / meters_per_minute
-                    isochrone_poly = make_iso_poly(graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
+                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
                     aoi_geometry.append(isochrone_poly)
 
                 aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
@@ -175,10 +188,13 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     
     ### Step 3: Calculate mean NDVI values and write results to file
     print("Calculating mean NDVI values...")
+    start_calc = time()
     if not all(geom.within(sg.box(*ndvi_src.rio.bounds())) for geom in aoi_gdf['geometry']):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the NDVI raster, note that results will be based on the intersecting part of the buffer zone")
     poi['mean_NDVI'] = aoi_gdf.apply(lambda row: ndvi_src.rio.clip([row.geometry]).clip(min=0).mean().values.round(3), axis=1)
-    print("Done \n")
+    end_calc = time()
+    elapsed_calc = end_calc - start_calc
+    print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
     print("Writing results to new geopackage file in specified directory...")
     input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
@@ -260,23 +276,31 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
                 if not isinstance(trip_time, int) or (not trip_time > 0):
                     raise TypeError("Please make sure that the trip time is set as a positive integer") 
 
+                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+                start_network_retrieval = time()
+                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
+                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
+                wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
+                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
+                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
+                end_network_retrieval = time()
+                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+                    
                 if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that network can be retrieved...")
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                     poi['geometry'] = poi['geometry'].centroid
                     print("Done \n")            
 
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
-                epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326") # EPSG transformer to use OSM
 
                 aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving network for point(s) of interest'):
-                    latlon = epsg_transformer.transform(geom.x, geom.y) # Transform point geometry into latlon for OSMnx
-                    graph = ox.graph_from_point(latlon, network_type=network_type, dist=buffer_dist) # Retrieve street network for desired network type and buffer distance surrounding poi
-                    graph = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
-                    center_node = ox.distance.nearest_nodes(graph, geom.x, geom.y) # Find node which is closest to point location as base for next steps
-                    for _, _, _, data in graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
+                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) # Find node which is closest to point location as base for next steps
+                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
                         data["time"] = data["length"] / meters_per_minute
-                    isochrone_poly = make_iso_poly(graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
+                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
                     aoi_geometry.append(isochrone_poly)
 
                 aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
@@ -304,6 +328,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
 
     ### Step 3: Perform calculations and write results to file
     print("Calculating land cover class percentages...")
+    start_calc = time()
     if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in aoi_gdf['geometry']):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the Land Cover file, note that results will be based on the intersecting part of the buffer zone")
        
@@ -313,7 +338,9 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
     landcover_percentages_series.columns = ["class_" + str(col) for col in landcover_percentages_series.columns]
     # concatenate the new series to the original dataframe
     poi = pd.concat([poi, landcover_percentages_series], axis=1)
-    print("Done \n")
+    end_calc = time()
+    elapsed_calc = end_calc - start_calc
+    print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
     print("Writing results to new geopackage file in specified directory...")
     input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
@@ -398,23 +425,31 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
                 if not isinstance(trip_time, int) or (not trip_time > 0):
                     raise TypeError("Please make sure that the trip time is set as a positive integer")   
 
+                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+                start_network_retrieval = time()
+                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
+                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
+                wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
+                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
+                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
+                end_network_retrieval = time()
+                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+                    
                 if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that network can be retrieved...")
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrone can be retrieved...")
                     poi['geometry'] = poi['geometry'].centroid
                     print("Done \n")          
         
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
-                epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326")
 
                 aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving network for point(s) of interest'):
-                    latlon = epsg_transformer.transform(geom.x, geom.y) # Transform point geometry into latlon for OSMnx
-                    graph = ox.graph_from_point(latlon, network_type=network_type, dist=buffer_dist) # Retrieve street network for desired network type and buffer distance surrounding poi
-                    graph = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
-                    center_node = ox.distance.nearest_nodes(graph, geom.x, geom.y) # Find node which is closest to point location as base for next steps
-                    for _, _, _, data in graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
+                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) # Find node which is closest to point location as base for next steps
+                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
                         data["time"] = data["length"] / meters_per_minute
-                    isochrone_poly = make_iso_poly(graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
+                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
                     aoi_geometry.append(isochrone_poly)
 
                 aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
@@ -442,12 +477,15 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
 
     ### Step 3: Perform calculations and write results to file
     print("Calculating percentage of tree canopy coverage...")
+    start_calc = time()
     if not all(geom.within(sg.box(*canopy_src.total_bounds)) for geom in aoi_gdf['geometry']):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the tree canopy file, note that results will be based on the intersecting part of the buffer zone")
 
     # Calculate percentage of tree canopy cover   
     poi['canopy_cover'] = aoi_gdf.apply(lambda row: str(((canopy_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
-    print("Done \n")
+    end_calc = time()
+    elapsed_calc = end_calc - start_calc
+    print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
     print("Writing results to new geopackage file in specified directory...")
     input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
@@ -483,19 +521,18 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
+    
+    poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network and parks from OSM if not provided by user
+    polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
+    wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326 
 
     ### Step 2: Read park data, retrieve from OSM if not provided by user
-    epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326")
     if park_vector_file is None:
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             raise TypeError("Please make sure that the buffer distance is set as a positive integer") 
 
-        print(f"Retrieving parks within buffer distance for {geom_type}(s) of interest...")
-        if geom_type == "Polygon":
-            park_retrieval = gpd.GeoDataFrame(geometry=poi['geometry'].centroid)
-        else:
-            park_retrieval = gpd.GeoDataFrame(geometry=poi['geometry'])
-
+        print(f"Retrieving parks within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
+        start_park_retrieval = time()
         # Tags seen as Urban Greenspace (UGS) require the following:
         # 1. Tag represent an area
         # 2. The area is outdoor
@@ -503,13 +540,11 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
         # 4. The area is likely to contain trees, grass and/or greenery
         # 5. The area can reasonable be used for walking or recreational activities
         park_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
-        park_src = gpd.GeoDataFrame()
-        for geom in park_retrieval['geometry']:
-            latlon = epsg_transformer.transform(geom.x, geom.y)
-            park_geom = ox.geometries_from_point(latlon, tags=park_tags, dist=buffer_dist)
-            park_src = gpd.GeoDataFrame(pd.concat([park_src, park_geom], ignore_index=True), crs=park_geom.crs)
+        park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
         park_src.to_crs(f"EPSG:{epsg}", inplace=True)
-        print("Done \n")
+        end_park_retrieval = time()
+        elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
     else:
         park_src = gpd.read_file(park_vector_file)
         if not (park_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
@@ -520,15 +555,15 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
             park_src.to_crs(f'EPSG:{epsg}', inplace=True)
             print("Done \n")
 
-    # Make sure all points of interest are within or do at least intersect (in case of polygons) the NDVI raster provided
-    if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
-        if geom_type == "Point":
-            raise ValueError("Not all points of interest are within the park file provided, please make sure they are and re-run the function")
-        else:
-            if not all(geom.intersects(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
-                raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the park file provided, please make sure they are/do and re-run the function")
+        # Make sure all points of interest are within or do at least intersect (in case of polygons) the park file provided
+        if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
+            if geom_type == "Point":
+                raise ValueError("Not all points of interest are within the park file provided, please make sure they are and re-run the function")
             else:
-                print("Warning: Not all polygons of interest are completely within the area covered by the park file provided, results will be based on intersecting part of polygons involved \n")
+                if not all(geom.intersects(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
+                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the park file provided, please make sure they are/do and re-run the function")
+                else:
+                    print("Warning: Not all polygons of interest are completely within the area covered by the park file provided, results will be based on intersecting part of polygons involved \n")
 
     ### Step 3: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
@@ -559,22 +594,28 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
                 if not isinstance(trip_time, int) or (not trip_time > 0):
                     raise TypeError("Please make sure that the trip time is set as a positive integer") 
 
+                print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
+                start_network_retrieval = time()       
+                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
+                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
+                end_network_retrieval = time()
+                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+                    
                 if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that network can be retrieved...")
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                     poi['geometry'] = poi['geometry'].centroid
                     print("Done \n")            
         
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
                 aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving network for point(s) of interest'):
-                    latlon = epsg_transformer.transform(geom.x, geom.y) # Transform point geometry into latlon for OSMnx
-                    graph = ox.graph_from_point(latlon, network_type=network_type, dist=buffer_dist) # Retrieve street network for desired network type and buffer distance surrounding poi
-                    graph = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
-                    center_node = ox.distance.nearest_nodes(graph, geom.x, geom.y) # Find node which is closest to point location as base for next steps
-                    for _, _, _, data in graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
+                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) # Find node which is closest to point location as base for next steps
+                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): # Calculate the time it takes to cover each edge's distance
                         data["time"] = data["length"] / meters_per_minute
-                    isochrone_poly = make_iso_poly(graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
+                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) # See separate function for line by line explanation
                     aoi_geometry.append(isochrone_poly)
 
                 aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
@@ -602,12 +643,15 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
 
     ### Step 4: Perform calculations and write results to file
     print("Calculating percentage of park area coverage...")
+    start_calc = time()
     if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in aoi_gdf['geometry']):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the park file, note that results will be based on the intersecting part of the buffer zone")
 
     # Calculate percentage of park area cover   
     poi['park_cover'] = aoi_gdf.apply(lambda row: str(((park_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
-    print("Done \n")
+    end_calc = time()
+    elapsed_calc = end_calc - start_calc
+    print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
     print("Writing results to new geopackage file in specified directory...")
     input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
