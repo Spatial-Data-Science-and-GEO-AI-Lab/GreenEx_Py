@@ -1,4 +1,4 @@
-**get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs_epsg=None, buffer_type=None, buffer_dist=None,network_file=None, network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd())**
+**get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, output_dir=os.getcwd())**
 
 > Retrieve the percentage of area covered by each land cover class for areas or points of interest.
 
@@ -6,28 +6,30 @@
 
 >> Parameters: 
 
->> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to calculate the percentage of area covered by each land cover class.
 
->> - landcover_raster_file *(string)* – the absolute or relative path to the raster file containing a land cover classification map, where each pixel is assigned a land cover class.
+>> - landcover_raster_file *(string)* – optional, the absolute or relative path to the raster file containing a land cover classification map, where each pixel is assigned a land cover class. If not provided, the land cover map from the European Space Agency (ESA) will be retrieved through the planetary computer. Note that this map may be outdated and contain missing values. 
 
->> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the one specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
+>> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
->> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the buffer distance should be considered.
+>> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the area of interest should be composed. If "euclidian", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isoschrone maps will be composed based on the additional arguments of trip_time and travel_speed.
 
->> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidian" or "network", surrounding distance in meters to consider for land cover type percentage calculation.
+>> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidian" OR "network" while no network is provided. In case buffer_type is "euclidian", the buffer distance is used to define the area, surrouding the point(s)/polygon(s) of interest, for which the land cover class percentages should be calculated. In case buffer_type is "network", the buffer distance will be used for extracting data from planetary computer and OpenStreetMap if the land cover raster and network are not provided respectively whereas the area of interest for which to perform the land cover class calculation will then be defined based on isochrones, following the trip_time and travel_mode arguments.
 
->> - network_file *(string)* – may optionally be defined in case buffer_type is set to "network", the absolute or relative path to the file containing the network (transportation infrastructure) to consider. If not specified while both conditions are met, network will be retrieved through the OSMnx package.
+>> - network_file *(string)* – optional, may be defined in case buffer_type is set to "network", the absolute or relative path to the file containing the network (transportation infrastructure) to consider. If not specified while buffer_type is set to "network", network will be retrieved through OpenStreetMap.
 
->> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which network buffer needs to be composed.
+>> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network" and no network file is provided, the travel mode for which the network needs to be retrieved.
 
->> - trip_time *(int)* – to be defined in case buffer_type is set to "network", trip time in minutes to consider for travel mode specified in network_type.
+>> - trip_time *(int)* – to be defined in case buffer_type is set to "network", trip time in minutes to consider for travel mode specified in network_type. The trip_time, as well as the travel_speed, will be used to compose an isochrone map.
 
->> - travel_speed *(int)* – to be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type.
+>> - travel_speed *(int)* – to be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type. The travel_speed, as well as the trip_time, will be used to compose an isochrone map.
 
->> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
+>> - write_to_file *(bool {"TRUE", "FALSE"})* - whether or not to write the results to a new file in the directory specified in the output_dir argument. By default, results will be written to file.
+
+>> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including columns for land cover class percentages. Dataframe will also be written to new file in specified directory (see output_dir argument). 
+>>> Dataframe as obtained from point_of_interest_file including columns for land cover class percentages. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
 
 >>Return type:	
 >>> Geodataframe
