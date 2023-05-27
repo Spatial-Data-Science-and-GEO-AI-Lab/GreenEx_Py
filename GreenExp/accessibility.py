@@ -20,7 +20,7 @@ from datetime import timedelta
 
 ##### MAIN FUNCTIONS
 def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, destination="centroids", 
-                               network_file=None, network_type=None, output_dir=os.getcwd()):
+                               network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
@@ -119,7 +119,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         print(f"Retrieving infrastructure network within total bounds of point(s) of interest, extended by a {target_dist*1.5}m buffer to account for edge effects...")
         start_network_retrieval = time()
         network_graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type)
-        network_graph = ox.project_graph(network_graph, to_crs=f"EPSG:{epsg}")
+        graph_projected = ox.project_graph(network_graph, to_crs=f"EPSG:{epsg}")
         end_network_retrieval = time()
         elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
@@ -127,15 +127,16 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
     start_calc = time()
-    poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, network_graph=network_graph, park_src=park_src, destination=destination)), axis=1)
+    poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
     
-    print("Writing results to new geopackage file in specified directory...")
-    input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-    poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistPark_added.gpkg"), driver="GPKG")
-    print("Done")
+    if write_to_file:
+        print("Writing results to new geopackage file in specified directory...")
+        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistPark_added.gpkg"), driver="GPKG")
+        print("Done")
 
     return poi
 

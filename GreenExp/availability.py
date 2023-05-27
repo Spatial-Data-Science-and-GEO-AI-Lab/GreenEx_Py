@@ -30,14 +30,19 @@ from time import time
 from tqdm import tqdm
 
 ##### MAIN FUNCTIONS
-def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None,
-                  trip_time=None, travel_speed=None, output_dir=os.getcwd(), year=datetime.now().year):
+def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+                  buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, 
+                  write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+    
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
     if not poi.crs.is_projected:
         if crs_epsg is None:
@@ -60,12 +65,17 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
+    # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
+    if buffer_dist is None:
+        poi_polygon = sg.box(*poi.total_bounds)
+    else:
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+
     # Retrieve NDVI raster, use planetary computer if not provided by user 
     if ndvi_raster_file is None:
         print("Retrieving NDVI raster through planetary computer...")
         start_ndvi_retrieval = time()
-        aoi_source = sg.box(*poi.total_bounds).buffer(buffer_dist)
-        bounding_box_pc = transform(epsg_transformer.transform, aoi_source).bounds  # transform CRS to comply with planetary computer requirements
+        bounding_box_pc = transform(epsg_transformer.transform, poi_polygon).bounds  # transform CRS to comply with planetary computer requirements
         bounding_box_pc = [bounding_box_pc[1], bounding_box_pc[0], bounding_box_pc[3], bounding_box_pc[2]] # Swap coords order to match with planetary computer format
 
         # Query planetary computer
@@ -110,7 +120,10 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
         if geom_type == "Polygon":
-            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            if polygon_type == "neighbourhood":
+                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            else:
+                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
         else:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
     else:
@@ -138,7 +151,6 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
 
                 print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()
-                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
                 polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
                 wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
                 graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
@@ -178,6 +190,11 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
 
+                if geom_type == "Polygon":
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                    poi['geometry'] = poi['geometry'].centroid
+                    print("Done \n")   
+
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
 
@@ -196,21 +213,27 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
-    print("Writing results to new geopackage file in specified directory...")
-    input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-    poi.to_file(os.path.join(output_dir, f"{input_filename}_ndvi_added.gpkg"), driver="GPKG")
-    print("Done")
+    if write_to_file:
+        print("Writing results to new geopackage file in specified directory...")
+        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_ndvi_added.gpkg"), driver="GPKG")
+        print("Done")
     
     return poi
 
-def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, 
-                              network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd()):
+def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood",
+                              buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, 
+                              write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
     if not poi.crs.is_projected:
         if crs_epsg is None:
@@ -231,26 +254,63 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
-    landcover_src = rioxarray.open_rasterio(landcover_raster_file)
-    if not landcover_src.rio.crs.to_epsg() == epsg:
-        print("Adjusting CRS of Land Cover file to match with Point of Interest CRS...")
-        landcover_src.rio.write_crs(f'EPSG:{epsg}', inplace=True)
-        print("Done \n")
+    # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
+    if buffer_dist is None:
+        poi_polygon = sg.box(*poi.total_bounds)
+    else:
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
 
-    # Make sure all points of interest are within or do at least intersect (in case of polygons) the NDVI raster provided
-    if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in poi['geometry']):
-        if geom_type == "Point":
-            raise ValueError("Not all points of interest are within the Land Cover file provided, please make sure they are and re-run the function")
-        else:
-            if not all(geom.intersects(sg.box(*landcover_src.rio.bounds())) for geom in poi['geometry']):
-                raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the Land Cover file provided, please make sure they are/do and re-run the function")
+    if landcover_raster_file is None:
+        epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326")
+        print("Retrieving landcover class raster through planetary computer...")
+        bounding_box_pc = transform(epsg_transformer.transform, poi_polygon).bounds  # transform CRS to comply with planetary computer requirements
+        bounding_box_pc = [bounding_box_pc[1], bounding_box_pc[0], bounding_box_pc[3], bounding_box_pc[2]] # Swap coords order to match with planetary computer format
+
+        # Query planetary computer
+        catalog = pystac_client.Client.open("https://planetarycomputer.microsoft.com/api/stac/v1",modifier=planetary_computer.sign_inplace)
+
+        search = catalog.search(
+            collections=["esa-worldcover"],
+            bbox=bounding_box_pc,
+        )
+
+        items = search.item_collection()
+        selected_item = items[0]
+        # Extract landcover classes and store in dictionary to use in later stage
+        class_list = selected_item.assets["map"].extra_fields["classification:classes"]
+        classmap = {
+            c["value"]: c["description"]
+            for c in class_list
+        }
+
+        landcover = rioxarray.open_rasterio(selected_item.assets["map"].href)
+        landcover_clip = landcover.rio.clip_box(*bounding_box_pc)
+        landcover_src = landcover_clip.rio.reproject(f"EPSG:{epsg}", resampling= Resampling.nearest)
+        print("Done \n")
+    else:    
+        landcover_src = rioxarray.open_rasterio(landcover_raster_file)
+        if not landcover_src.rio.crs.to_epsg() == epsg:
+            print("Adjusting CRS of land cover file to match with Point of Interest CRS...")
+            landcover_src.rio.write_crs(f'EPSG:{epsg}', inplace=True)
+            print("Done \n")
+
+        # Make sure all points of interest are within or do at least intersect (in case of polygons) the NDVI raster provided
+        if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in poi['geometry']):
+            if geom_type == "Point":
+                raise ValueError("Not all points of interest are within the landcover file provided, please make sure they are and re-run the function")
             else:
-                print("Warning: Not all polygons of interest are completely within the area covered by the Land Cover file provided, results will be based on intersecting part of polygons involved \n")
+                if not all(geom.intersects(sg.box(*landcover_src.rio.bounds())) for geom in poi['geometry']):
+                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the landcover file provided, please make sure they are/do and re-run the function")
+                else:
+                    print("Warning: Not all polygons of interest are completely within the area covered by the landcover file provided, results will be based on intersecting part of polygons involved \n")
 
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
         if geom_type == "Polygon":
-            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            if polygon_type == "neighbourhood":
+                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            else:
+                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
         else:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
     else:
@@ -278,7 +338,6 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
 
                 print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()
-                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
                 polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
                 wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
                 graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
@@ -318,6 +377,11 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
 
+                if geom_type == "Polygon":
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                    poi['geometry'] = poi['geometry'].centroid
+                    print("Done \n")   
+
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
 
@@ -327,36 +391,45 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file, crs
                 aoi_gdf = gpd.GeoDataFrame(geometry=[bbox_network], crs=f'EPSG:{epsg}')
 
     ### Step 3: Perform calculations and write results to file
-    print("Calculating land cover class percentages...")
+    print("Calculating landcover class percentages...")
     start_calc = time()
     if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in aoi_gdf['geometry']):
-        print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the Land Cover file, note that results will be based on the intersecting part of the buffer zone")
+        print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the landcover raster, note that results will be based on the intersecting part of the buffer zone")
        
     # apply the function to each geometry in the GeoDataFrame and create a new Pandas Series
     landcover_percentages_series = aoi_gdf.geometry.apply(lambda x: pd.Series(calculate_landcover_percentages(landcover_src=landcover_src, geometry=x)))
-    # rename the columns with the land cover class values
-    landcover_percentages_series.columns = ["class_" + str(col) for col in landcover_percentages_series.columns]
+    # rename the columns with the landcover class values
+    if landcover_raster_file is None:
+        landcover_percentages_series = landcover_percentages_series.rename(columns=lambda x: str(classmap.get(x, x)))
+    else:
+        landcover_percentages_series.columns = ["class_" + str(col) for col in landcover_percentages_series.columns]
     # concatenate the new series to the original dataframe
     poi = pd.concat([poi, landcover_percentages_series], axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
-    print("Writing results to new geopackage file in specified directory...")
-    input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-    poi.to_file(os.path.join(output_dir, f"{input_filename}_LCperc_added.gpkg"), driver="GPKG")
-    print("Done")
+    if write_to_file:
+        print("Writing results to new geopackage file in specified directory...")
+        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_LCperc_added.gpkg"), driver="GPKG")
+        print("Done")
 
     return poi
 
-def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None,
-                          network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd()):
+def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+                          buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
+                          output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
     if not poi.crs.is_projected:
         if crs_epsg is None:
@@ -399,7 +472,10 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
         if geom_type == "Polygon":
-            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            if polygon_type == "neighbourhood":
+                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            else:
+                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
         else:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
     else:
@@ -467,6 +543,11 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
 
+                if geom_type == "Polygon":
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                    poi['geometry'] = poi['geometry'].centroid
+                    print("Done \n")   
+
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
 
@@ -487,21 +568,27 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
-    print("Writing results to new geopackage file in specified directory...")
-    input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-    poi.to_file(os.path.join(output_dir, f"{input_filename}_CanopyPerc_added.gpkg"), driver="GPKG")
-    print("Done")
+    if write_to_file:
+        print("Writing results to new geopackage file in specified directory...")
+        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_CanopyPerc_added.gpkg"), driver="GPKG")
+        print("Done")
 
     return poi
 
-def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None,
-                        network_type=None, trip_time=None, travel_speed=None, output_dir=os.getcwd()):
+def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+                        buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
+                        output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+    
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
     if not poi.crs.is_projected:
         if crs_epsg is None:
@@ -522,16 +609,17 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
     
-    poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network and parks from OSM if not provided by user
+    # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
+    if buffer_dist is None:
+        poi_polygon = sg.box(*poi.total_bounds)
+    else:
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
     polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
     wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326 
 
     ### Step 2: Read park data, retrieve from OSM if not provided by user
     if park_vector_file is None:
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer distance is set as a positive integer") 
-
-        print(f"Retrieving parks within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
+        print(f"Retrieving parks within total bounds of {geom_type}(s) of interest, extended by buffer distance if specified...")
         start_park_retrieval = time()
         # Tags seen as Urban Greenspace (UGS) require the following:
         # 1. Tag represent an area
@@ -568,7 +656,10 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     ### Step 3: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
         if geom_type == "Polygon":
-            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            if polygon_type == "neighbourhood":
+                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
+            else:
+                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
         else:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
     else:
@@ -633,6 +724,11 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
 
+                if geom_type == "Polygon":
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                    poi['geometry'] = poi['geometry'].centroid
+                    print("Done \n")   
+
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
 
@@ -653,10 +749,11 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
 
-    print("Writing results to new geopackage file in specified directory...")
-    input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-    poi.to_file(os.path.join(output_dir, f"{input_filename}_ParkPerc_added.gpkg"), driver="GPKG")
-    print("Done")
+    if write_to_file:
+        print("Writing results to new geopackage file in specified directory...")
+        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_ParkPerc_added.gpkg"), driver="GPKG")
+        print("Done")
 
     return poi
 
