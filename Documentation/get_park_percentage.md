@@ -26,7 +26,7 @@
 
 >> - write_to_file *(bool {"TRUE", "FALSE"})* - whether or not to write the results to a new file in the directory specified in the output_dir argument. By default, results will be written to file.
 
->> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written. If not specified, the current working directory will serve as default.
+>> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 
 >>Returns:	
 >>> Dataframe as obtained from point_of_interest_file including column for park cover percentage. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
