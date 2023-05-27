@@ -1,4 +1,4 @@
-**get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, write_to_file=True, output_dir=os.getcwd())**
+**get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, write_to_file=True, output_dir=os.getcwd())**
 
 > Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas or points of interest.
 
@@ -11,6 +11,8 @@
 >> - ndvi_raster_file *(string)* – optional, the absolute or relative path to the file containing the NDVI values in raster format. If not provided, the NDVI raster will be obtained by using satellite images from the planetary computer.
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
+
+>> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries.
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the area of interest should be composed. If "euclidian", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isoschrone maps will be composed based on the additional arguments of trip_time and travel_speed.
 

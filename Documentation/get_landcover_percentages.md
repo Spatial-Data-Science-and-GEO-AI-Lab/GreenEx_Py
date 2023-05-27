@@ -1,4 +1,4 @@
-**get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, output_dir=os.getcwd())**
+**get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, output_dir=os.getcwd())**
 
 > Retrieve the percentage of area covered by each landcover class for areas or points of interest.
 
@@ -11,6 +11,8 @@
 >> - landcover_raster_file *(string)* – optional, the absolute or relative path to the raster file containing a landcover classification map, where each pixel is assigned a landcover class. If not provided, the landcover map from the European Space Agency (ESA) will be retrieved through the planetary computer. Note that this map may be outdated and contain missing values. 
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
+
+>> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries.
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the area of interest should be composed. If "euclidian", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isoschrone maps will be composed based on the additional arguments of trip_time and travel_speed.
 
