@@ -40,10 +40,30 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
+    # Make sure the type of polygon is specified if poi file contains polygon geometries
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
+    # In case of house polygons, transform to centroids
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+        if polygon_type == "house":
+            print("Changing geometry type to Point by computing polygon centroids...")
+            poi['geometry'] = poi['geometry'].centroid
+            geom_type = poi.iloc[0]['geometry'].geom_type
+            print("Done \n")
+
+    # Make sure buffer distance and type are set in case of point geometries
+    if geom_type == "Point":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+
+        if buffer_type not in ["euclidian", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+
+    # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -119,13 +139,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
 
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
-        if geom_type == "Polygon":
-            if polygon_type == "neighbourhood":
-                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
-            else:
-                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-        else:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
         if buffer_type not in ["euclidian", "network"]:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
@@ -135,20 +149,22 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                 raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
 
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
-        else:            
-            if network_file is None:
-                if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                    raise TypeError("Please make sure that the buffer distance is set as a positive integer")
+        else:
+            if not isinstance(travel_speed, int) or (not travel_speed > 0):
+                raise TypeError("Please make sure that the travel speed is set as a positive integer")
 
+            if not isinstance(trip_time, int) or (not trip_time > 0):
+                raise TypeError("Please make sure that the trip time is set as a positive integer")
+
+            if geom_type == "Polygon":
+                print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                poi['geometry'] = poi['geometry'].centroid
+                print("Done \n")
+                        
+            if network_file is None:
                 if network_type not in ["walk", "bike", "drive", "all"]:
                     raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
                 
-                if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                    raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-                if not isinstance(trip_time, int) or (not trip_time > 0):
-                    raise TypeError("Please make sure that the trip time is set as a positive integer")
-
                 print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()
                 polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
@@ -157,12 +173,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                 graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
                 end_network_retrieval = time()
                 elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
-                    
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")            
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")            
 
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
@@ -189,11 +200,6 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                     print("Adjusting CRS of Network file to match with Point of Interest CRS...")
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
-
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")   
 
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
@@ -231,10 +237,30 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
+    # Make sure type of polygon is specified in case poi file contains polygon geometries
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
+    # In case of house polygons, transform to centroids
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+        if polygon_type == "house":
+            print("Changing geometry type to Point by computing polygon centroids...")
+            poi['geometry'] = poi['geometry'].centroid
+            geom_type = poi.iloc[0]['geometry'].geom_type
+            print("Done \n")
+
+    # Make sure buffer distance and type are set in case of point geometries
+    if geom_type == "Point":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+
+        if buffer_type not in ["euclidian", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+
+    # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -306,13 +332,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
 
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
-        if geom_type == "Polygon":
-            if polygon_type == "neighbourhood":
-                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
-            else:
-                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-        else:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
         if buffer_type not in ["euclidian", "network"]:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
@@ -322,19 +342,21 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
                 raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
 
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
-        else:         
-            if network_file is None:
-                if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                    raise TypeError("Please make sure that the buffer distance is set as a positive integer")
+        else:
+            if not isinstance(travel_speed, int) or (not travel_speed > 0):
+                raise TypeError("Please make sure that the travel speed is set as a positive integer")
 
+            if not isinstance(trip_time, int) or (not trip_time > 0):
+                raise TypeError("Please make sure that the trip time is set as a positive integer") 
+
+            if geom_type == "Polygon":
+                print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                poi['geometry'] = poi['geometry'].centroid
+                print("Done \n")  
+                     
+            if network_file is None:
                 if network_type not in ["walk", "bike", "drive", "all"]:
                     raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
-                
-                if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                    raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-                if not isinstance(trip_time, int) or (not trip_time > 0):
-                    raise TypeError("Please make sure that the trip time is set as a positive integer") 
 
                 print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()
@@ -344,12 +366,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
                 graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") # Project street network graph back to original poi CRS
                 end_network_retrieval = time()
                 elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
-                    
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")            
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")         
 
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
@@ -376,11 +393,6 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
                     print("Adjusting CRS of Network file to match with Point of Interest CRS...")
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
                     print("Done \n")
-
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")   
 
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
@@ -427,10 +439,30 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
+    # Make sure type of polygon is specified in case poi file contains polygon geometries
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
+    # In case of house polygons, transform to centroids
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+        if polygon_type == "house":
+            print("Changing geometry type to Point by computing polygon centroids...")
+            poi['geometry'] = poi['geometry'].centroid
+            geom_type = poi.iloc[0]['geometry'].geom_type
+            print("Done \n")
+
+    # Make sure buffer distance and type are set in case of point geometries
+    if geom_type == "Point":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+
+        if buffer_type not in ["euclidian", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+
+    # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -450,6 +482,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
+    # Retrieve tree canopy data
     canopy_src = gpd.read_file(canopy_vector_file)
     if not (canopy_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
         raise ValueError("Please make sure all geometries of the tree canopy file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
@@ -459,7 +492,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
         canopy_src.to_crs(f'EPSG:{epsg}', inplace=True)
         print("Done \n")
 
-    # Make sure all points of interest are within or do at least intersect (in case of polygons) the NDVI raster provided
+    # Make sure all points of interest are within or do at least intersect (in case of polygons) the tree canopy file provided
     if not all(geom.within(sg.box(*canopy_src.total_bounds)) for geom in poi['geometry']):
         if geom_type == "Point":
             raise ValueError("Not all points of interest are within the tree canopy file provided, please make sure they are and re-run the function")
@@ -469,15 +502,15 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
             else:
                 print("Warning: Not all polygons of interest are completely within the area covered by the tree canopy file provided, results will be based on intersecting part of polygons involved \n")
 
+    # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
+    if buffer_dist is None:
+        poi_polygon = sg.box(*poi.total_bounds)
+    else:
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+    
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
-        if geom_type == "Polygon":
-            if polygon_type == "neighbourhood":
-                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
-            else:
-                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-        else:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
         if buffer_type not in ["euclidian", "network"]:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
@@ -488,22 +521,23 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
 
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
         else:            
-            if network_file is None:
-                if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                    raise TypeError("Please make sure that the buffer distance is set as a positive integer")
+            if not isinstance(travel_speed, int) or (not travel_speed > 0):
+                raise TypeError("Please make sure that the travel speed is set as a positive integer")
 
+            if not isinstance(trip_time, int) or (not trip_time > 0):
+                raise TypeError("Please make sure that the trip time is set as a positive integer") 
+            
+            if geom_type == "Polygon":
+                print("Changing geometry type to Point by computing polygon centroids so that isochrone can be retrieved...")
+                poi['geometry'] = poi['geometry'].centroid
+                print("Done \n") 
+             
+            if network_file is None:
                 if network_type not in ["walk", "bike", "drive", "all"]:
                     raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
                 
-                if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                    raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-                if not isinstance(trip_time, int) or (not trip_time > 0):
-                    raise TypeError("Please make sure that the trip time is set as a positive integer")   
-
                 print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()
-                poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist) # Define total bounds of poi file to extract network from OSM
                 polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
                 wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326        
                 graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
@@ -512,11 +546,6 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
                 elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
                 print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
                     
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrone can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")          
-        
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
                 aoi_geometry = []
@@ -541,12 +570,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
                 if not network.crs.to_epsg() == epsg:
                     print("Adjusting CRS of Network file to match with Point of Interest CRS...")
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")
-
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")   
+                    print("Done \n")  
 
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
@@ -586,10 +610,30 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
+    # Make sure type of polygon is specified in case poi file contains polygon geometries
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
 
+    # In case of house polygons, transform to centroids
+    if geom_type == "Polygon":
+        if polygon_type not in ["neighbourhood", "house"]:
+            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+        if polygon_type == "house":
+            print("Changing geometry type to Point by computing polygon centroids...")
+            poi['geometry'] = poi['geometry'].centroid
+            geom_type = poi.iloc[0]['geometry'].geom_type
+            print("Done \n")
+
+    # Make sure buffer distance and type are set in case of point geometries
+    if geom_type == "Point":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+
+        if buffer_type not in ["euclidian", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+
+    # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -655,13 +699,7 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
 
     ### Step 3: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
-        if geom_type == "Polygon":
-            if polygon_type == "neighbourhood":
-                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
-            else:
-                raise ValueError("The type of polygons is set as 'house', please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-        else:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
         if buffer_type not in ["euclidian", "network"]:
             raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
@@ -672,19 +710,21 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
 
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
         else:
-            if network_file is None:
-                if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                    raise TypeError("Please make sure that the buffer distance is set as a positive integer")
+            if not isinstance(travel_speed, int) or (not travel_speed > 0):
+                raise TypeError("Please make sure that the travel speed is set as a positive integer")
 
+            if not isinstance(trip_time, int) or (not trip_time > 0):
+                raise TypeError("Please make sure that the trip time is set as a positive integer")
+
+            if geom_type == "Polygon":
+                print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                poi['geometry'] = poi['geometry'].centroid
+                print("Done \n") 
+            
+            if network_file is None:
                 if network_type not in ["walk", "bike", "drive", "all"]:
                     raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
                 
-                if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                    raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-                if not isinstance(trip_time, int) or (not trip_time > 0):
-                    raise TypeError("Please make sure that the trip time is set as a positive integer") 
-
                 print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
                 start_network_retrieval = time()       
                 graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) # Retrieve street network for desired network type
@@ -693,11 +733,6 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
                 elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
                 print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
                     
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")            
-        
                 meters_per_minute = travel_speed * 1000 / 60  # km per hour to m per minute
 
                 aoi_geometry = []
@@ -722,12 +757,7 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
                 if not network.crs.to_epsg() == epsg:
                     print("Adjusting CRS of Network file to match with Point of Interest CRS...")
                     network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")
-
-                if geom_type == "Polygon":
-                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                    poi['geometry'] = poi['geometry'].centroid
-                    print("Done \n")   
+                    print("Done \n")  
 
                 # Create bounding box for network file
                 bbox_network = network.unary_union.convex_hull
