@@ -134,6 +134,8 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistPark_added.gpkg"), driver="GPKG")
         print("Done")

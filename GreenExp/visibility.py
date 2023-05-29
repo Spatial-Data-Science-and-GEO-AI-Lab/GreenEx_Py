@@ -201,6 +201,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_added.gpkg"), driver="GPKG")
         sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_sampled_points.gpkg"), driver="GPKG")
