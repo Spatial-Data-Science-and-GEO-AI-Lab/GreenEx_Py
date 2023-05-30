@@ -84,6 +84,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(dsm_raster_file) as src:
         dsm = src.read(1)
         dsm_crs = src.crs.to_epsg()
+        if not dsm_crs == epsg:
+            raise ValueError("The CRS of the DSM file does not match the CRS of the poi file, please make sure it does and re-run the function")
         dsm_bounds = src.bounds
         # Make sure all points of interest are within or do at least intersect (in case of polygons) the DSM raster provided
         if not all(geom.within(sg.box(*dsm_bounds)) for geom in poi['geometry']):
@@ -99,6 +101,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(dtm_raster_file) as src:
         dtm = src.read(1)
         dtm_crs = src.crs.to_epsg()
+        if not dtm_crs == epsg:
+            raise ValueError("The CRS of the DTM file does not match the CRS of the poi file, please make sure it does and re-run the function")
         dtm_bounds = src.bounds
         # Make sure all points of interest are within or do at least intersect (in case of polygons) the DTM raster provided
         if not all(geom.within(sg.box(*dtm_bounds)) for geom in poi['geometry']):
@@ -121,6 +125,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(greendata_raster_file) as src:
         green = src.read(1)
         green_crs = src.crs.to_epsg()
+        if not green_crs == epsg:
+            raise ValueError("The CRS of the greenspace file does not match the CRS of the poi file, please make sure it does and re-run the function")
         green_bounds = src.bounds
         # Make sure all points of interest are within or do at least intersect (in case of polygons) the Greenspace raster provided
         if not all(geom.within(sg.box(*green_bounds)) for geom in poi['geometry']):
@@ -181,7 +187,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
 
-    ### Step 3: 
+    ### Step 3: Define sample points on road network for calculating GVI scores
     print("Computing sample points for roads within area of interest's network...")
     start_sample_points = time()
     poi['sampled_points'] = poi.apply(lambda row: get_network_sample_points(df_row=row, network_edges=graph_projected_edges, buffer_dist=buffer_dist, sample_dist=sample_dist), axis=1)
@@ -193,11 +199,14 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     print("Note: creation of sample points based on code by Ondrej Mlynarcik \nsource: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb")
     print(f"Done, running time: {str(timedelta(seconds=elapsed_sample_points))} \n")
 
-    ### Step 4:
-    poi[['GVI', 'nr_of_points']] = poi.apply(lambda row: pd.Series(f(mask, row, geom_type)), axis=1)
+    ### Step 4: Perform the Viewshed GVI calculation
+    poi[['GVI', 'nr_of_points', 'GVI_list']] = poi.apply(lambda row: pd.Series(f(mask, row, geom_type)), axis=1)
+    # Assign GVI scores to each sample road location
+    sampled_points_gdf['GVI'] = poi['GVI_list'].explode().reset_index(drop=True)
     print("Note: calculation of Viewshed GVI based on code by Johnny Huck and Labib Labib \nsource: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py \n")
 
-    poi.drop('sampled_points', axis=1, inplace=True)
+    # Drop irrelevant columns
+    poi.drop(['sampled_points', 'GVI_list'], axis=1, inplace=True)
 
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
@@ -333,7 +342,7 @@ def f(mask, df_row, geom_type):
         gvi = visible_green.sum() / visible.sum()
         gvi_values.append(gvi)
     
-    return np.mean(gvi_values).round(3), nr_of_points
+    return np.mean(gvi_values).round(3), nr_of_points, gvi_values
 
 # Get sample points within sub-network to calculate GVI
 def get_network_sample_points(df_row, network_edges, buffer_dist, sample_dist):
