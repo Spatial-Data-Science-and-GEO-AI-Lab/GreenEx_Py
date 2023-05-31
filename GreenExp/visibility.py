@@ -30,6 +30,7 @@ from math import exp, hypot
 from rasterio.transform import rowcol, xy
 from skimage.draw import line, disk, circle_perimeter
 import rasterio
+from osgeo import gdal
 
 # Image Processing and Analysis
 from transformers import AutoImageProcessor, Mask2FormerForUniversalSegmentation  
@@ -56,6 +57,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
+    # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -78,12 +80,14 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
             geom_type = poi.iloc[0]['geometry'].geom_type
             print("Done \n")
 
+    # Make sure poi file contains ID columns to identify unique locations
     if "id" in poi.columns:
         if poi['id'].isnull().values.any():
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
+    # Validate user inputs
     if geom_type == "Point":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
@@ -97,62 +101,88 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     if not isinstance(observer_height, (float, int)) or (not observer_height > 0):
         raise TypeError("Please make sure that the observer_height argument is set to a positive integer")
 
+    # Read DSM, DTM and greenspace rasters
     with rasterio.open(dsm_raster_file) as src:
         dsm = src.read(1)
         dsm_crs = src.crs.to_epsg()
-        if not dsm_crs == epsg:
-            raise ValueError("The CRS of the DSM file does not match the CRS of the poi file, please make sure it does and re-run the function")
         dsm_bounds = src.bounds
-        # Make sure all points of interest are within or do at least intersect (in case of polygons) the DSM raster provided
-        if not all(geom.within(sg.box(*dsm_bounds)) for geom in poi['geometry']):
-            if geom_type == "Point":
-                raise ValueError("Not all points of interest are within the DSM file provided, please make sure they are and re-run the function")
-            else:
-                if not all(geom.intersects(sg.box(*dsm_bounds)) for geom in poi['geometry']):
-                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the DSM file provided, please make sure they are/do and re-run the function")
-                else:
-                    print("Warning: Not all polygons of interest are completely within the area covered by the DSM file provided, results will be based on intersecting part of polygons involved \n")
-    
 
+    # Reproject if EPSG is not equal to CRS of poi file
+    if not dsm_crs == epsg:
+        print("Reprojecting the DSM file so that the CRS matches the CRS of the poi file...")
+        gdal.Warp('/vsimem/reprojected.tif', dsm_raster_file, srcSRS=f"EPSG:{dsm_crs}", dstSRS=f"EPSG:{epsg}")
+        with rasterio.open('/vsimem/reprojected.tif') as src:
+            dsm = src.read(1)
+            dsm_bounds = src.bounds
+        gdal.Unlink('/vsimem/reprojected.tif')
+        print("Done \n")
+
+    # Make sure all points of interest are within or do at least intersect (in case of polygons) the DSM raster provided
+    if not all(geom.within(sg.box(*dsm_bounds)) for geom in poi['geometry']):
+        if geom_type == "Point":
+            raise ValueError("Not all points of interest are within the DSM file provided, please make sure they are and re-run the function")
+        else:
+            if not all(geom.intersects(sg.box(*dsm_bounds)) for geom in poi['geometry']):
+                raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the DSM file provided, please make sure they are/do and re-run the function")
+            else:
+                print("Warning: Not all polygons of interest are completely within the area covered by the DSM file provided, results will be based on intersecting part of polygons involved \n")
+    
     with rasterio.open(dtm_raster_file) as src:
         dtm = src.read(1)
         dtm_crs = src.crs.to_epsg()
-        if not dtm_crs == epsg:
-            raise ValueError("The CRS of the DTM file does not match the CRS of the poi file, please make sure it does and re-run the function")
         dtm_bounds = src.bounds
-        # Make sure all points of interest are within or do at least intersect (in case of polygons) the DTM raster provided
-        if not all(geom.within(sg.box(*dtm_bounds)) for geom in poi['geometry']):
-            if geom_type == "Point":
-                raise ValueError("Not all points of interest are within the DTM file provided, please make sure they are and re-run the function")
+    
+    if not dtm_crs == epsg:
+        print("Reprojecting the DTM file so that the CRS matches the CRS of the poi file...")
+        gdal.Warp('/vsimem/reprojected.tif', dtm_raster_file, srcSRS=f"EPSG:{dtm_crs}", dstSRS=f"EPSG:{epsg}")
+        with rasterio.open('/vsimem/reprojected.tif') as src:
+            dtm = src.read(1)
+            dtm_bounds = src.bounds
+        gdal.Unlink('/vsimem/reprojected.tif')
+        print("Done \n")
+    
+    # Make sure all points of interest are within or do at least intersect (in case of polygons) the DTM raster provided
+    if not all(geom.within(sg.box(*dtm_bounds)) for geom in poi['geometry']):
+        if geom_type == "Point":
+            raise ValueError("Not all points of interest are within the DTM file provided, please make sure they are and re-run the function")
+        else:
+            if not all(geom.intersects(sg.box(*dtm_bounds)) for geom in poi['geometry']):
+                raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the DTM file provided, please make sure they are/do and re-run the function")
             else:
-                if not all(geom.intersects(sg.box(*dtm_bounds)) for geom in poi['geometry']):
-                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the DTM file provided, please make sure they are/do and re-run the function")
-                else:
-                    print("Warning: Not all polygons of interest are completely within the area covered by the DTM file provided, results will be based on intersecting part of polygons involved \n")
-        meta = {
-            'height': dtm.shape[0],
-            'width': dtm.shape[1],
-            'transform': src.transform,
-            "driver": "GTiff",
-            'count': 1,
-            "crs": src.crs
-        }
+                print("Warning: Not all polygons of interest are completely within the area covered by the DTM file provided, results will be based on intersecting part of polygons involved \n")
+    
+    meta = {
+        'height': dtm.shape[0],
+        'width': dtm.shape[1],
+        'transform': src.transform,
+        "driver": "GTiff",
+        'count': 1,
+        "crs": src.crs
+    }
 
     with rasterio.open(greendata_raster_file) as src:
         green = src.read(1)
         green_crs = src.crs.to_epsg()
-        if not green_crs == epsg:
-            raise ValueError("The CRS of the greenspace file does not match the CRS of the poi file, please make sure it does and re-run the function")
         green_bounds = src.bounds
-        # Make sure all points of interest are within or do at least intersect (in case of polygons) the Greenspace raster provided
-        if not all(geom.within(sg.box(*green_bounds)) for geom in poi['geometry']):
-            if geom_type == "Point":
-                raise ValueError("Not all points of interest are within the Greenspace file provided, please make sure they are and re-run the function")
+    
+    if not green_crs == epsg:
+        print("Reprojecting the greenspace file so that the CRS matches the CRS of the poi file...")
+        gdal.Warp('/vsimem/reprojected.tif', greendata_raster_file, srcSRS=f"EPSG:{green_crs}", dstSRS=f"EPSG:{epsg}")
+        with rasterio.open('/vsimem/reprojected.tif') as src:
+            green = src.read(1)
+            green_bounds = src.bounds
+        gdal.Unlink('/vsimem/reprojected.tif')
+        print("Done \n")
+        
+    # Make sure all points of interest are within or do at least intersect (in case of polygons) the Greenspace raster provided
+    if not all(geom.within(sg.box(*green_bounds)) for geom in poi['geometry']):
+        if geom_type == "Point":
+            raise ValueError("Not all points of interest are within the Greenspace file provided, please make sure they are and re-run the function")
+        else:
+            if not all(geom.intersects(sg.box(*green_bounds)) for geom in poi['geometry']):
+                raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the Greenspace file provided, please make sure they are/do and re-run the function")
             else:
-                if not all(geom.intersects(sg.box(*green_bounds)) for geom in poi['geometry']):
-                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the Greenspace file provided, please make sure they are/do and re-run the function")
-                else:
-                    print("Warning: Not all polygons of interest are completely within the area covered by the Greenspace file provided, results will be based on intersecting part of polygons involved \n")
+                print("Warning: Not all polygons of interest are completely within the area covered by the Greenspace file provided, results will be based on intersecting part of polygons involved \n")
 
     options = {
         'radius': viewing_dist, 
