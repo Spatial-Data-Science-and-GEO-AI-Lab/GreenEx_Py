@@ -13,14 +13,15 @@ import pyproj
 import shapely.geometry as sg
 import networkx as nx
 import momepy
+from scipy.spatial import cKDTree
 
 # Date and time manipulation
 from time import time
 from datetime import timedelta
 
 ##### MAIN FUNCTIONS
-def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, destination="centroids", 
-                               network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd()):
+def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian",
+                               destination="centroids", network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
@@ -54,6 +55,12 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
 
     if not isinstance(target_dist, int) or (not target_dist > 0):
         raise TypeError("Please make sure that the target distance is set as a positive integer")
+
+    if distance_type not in ["euclidian", "network"]:
+        raise TypeError("Please make sure that the distance_type argument is set to either 'euclidian' or 'network'")
+
+    if distance_type == "network":
+        print("Warning: setting the distance_type argument to 'network' may lead to extensive processing times in case many points of interest are provided \n")
     
     if destination not in ["centroids", "entrance"]:
         raise TypeError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
@@ -127,7 +134,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
     start_calc = time()
-    poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
+    poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, distance_type=distance_type, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -143,13 +150,13 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     return poi
 
 ##### SUPPORTING FUNCTIONS
-def calculate_shortest_distance(df_row=None, target_dist=None, network_graph=None, park_src=None, destination=None):   
+def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=None, network_graph=None, park_src=None, destination=None):   
     ### Step 1: Clip park boundaries to poi incl. buffer to minimize possible destination points
     park_src_buffer = park_src.clip(df_row['geometry'].buffer(target_dist))
+    
     ### Step 2: Retrieve nearest network node for house location and calculate euclidian distance between these points
     # Euclidian distance will be added to network distance to minimize distance error
     nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
-    penalty_home = df_row['geometry'].distance(sg.Point(network_graph.nodes[nearest_node]['x'], network_graph.nodes[nearest_node]['y']))
 
     ### Step 3: Create subgraph to only consider network in point's proximity -- save time 
     subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
@@ -163,28 +170,44 @@ def calculate_shortest_distance(df_row=None, target_dist=None, network_graph=Non
         boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
         park_boundary_nodes[park_id] = boundary_nodes
     
-    ### Step 5: Calculate the network distances between the house location's nearest node and the fake park entry points
-    # Add penalty_home as defined before to network distance, as well as penalty_centroid in case user defined destination argument as "centroids"
-    distances = {}
-    for park_id, boundary_nodes in park_boundary_nodes.items():
-        for node in boundary_nodes:
-            try:
-                path = nx.shortest_path(subgraph, nearest_node, node, weight='length')
-                if destination == "centroids": 
-                    # Calculate euclidian distance between the fake park entry points and the corresponding park's centroid to minimize distance error
-                    penalty_centroid = park_src_buffer[park_src_buffer['park_id'] == park_id]['centroid'].iloc[0].distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
-                    distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home + penalty_centroid
-                else:
-                    distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home
-                distances[node] = distance
-            except:
-                continue
+    # Evaluate distance type provided by user
+    if distance_type == "network":
+        ### Step 5: Calculate the network distances between the house location's nearest node and the fake park entry points
+        # Add penalty_home as defined before to network distance, as well as penalty_centroid in case user defined destination argument as "centroids"
+        penalty_home = df_row['geometry'].distance(sg.Point(network_graph.nodes[nearest_node]['x'], network_graph.nodes[nearest_node]['y']))
+        distances = {}
+        for park_id, boundary_nodes in park_boundary_nodes.items():
+            for node in boundary_nodes:
+                try:
+                    path = nx.shortest_path(subgraph, nearest_node, node, weight='length')
+                    if destination == "centroids": 
+                        # Calculate euclidian distance between the fake park entry points and the corresponding park's centroid to minimize distance error
+                        penalty_centroid = park_src_buffer[park_src_buffer['park_id'] == park_id]['centroid'].iloc[0].distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
+                        distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home + penalty_centroid
+                    else:
+                        distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home
+                    distances[node] = distance
+                except:
+                    continue
 
-    # Get the minimum distance (house location to park)
-    if distances:
-        min_distance = round(min(distances.values()),0)
+        # Get the minimum distance (house location to park)
+        if distances:
+            min_distance = round(min(distances.values()),0)
+        else:
+            min_distance = np.nan
     else:
-        min_distance = np.nan
+        ### Step 5: Calculate the euclidian distance between the house location and the nearest fake park entry point/park centroid
+        poi_coords = (df_row['geometry'].x, df_row['geometry'].y)
+        if destination == "centroids": 
+            centroid_coordinates = [(geom.x, geom.y) for geom in park_src_buffer['centroid']]
+            kd_tree = cKDTree(centroid_coordinates)
+            min_distance, _ = kd_tree.query(poi_coords)
+            min_distance = round(min_distance,0)
+        else:
+            entrance_points = [pos[node] for node_lists in park_boundary_nodes.values() for node in node_lists]
+            kd_tree = cKDTree(entrance_points)
+            min_distance, _ = kd_tree.query(poi_coords)
+            min_distance = round(min_distance,0)
     
     ### Step 6: Define result, if minimum distance smaller than/equal to target distance threshold --> Good
     if min_distance <= target_dist:
