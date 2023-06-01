@@ -262,6 +262,6 @@ dependencies:
     - regex==2023.5.5
     - safetensors==0.3.1
     - tokenizers==0.13.3
-    - transformers==4.30.0.dev0
+    - transformers==4.29.2
     - vt2geojson==0.2.1
 prefix: C:\Users\ygrin\anaconda3\envs\ADSthesis
