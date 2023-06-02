@@ -52,6 +52,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
                      output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
+    # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
@@ -92,12 +93,15 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
     
+    # Make sure viewing_dist is set 
     if not isinstance(viewing_dist, int) or (not viewing_dist > 0):
         raise TypeError("Please make sure that the viewing_dist argument is set to a positive integer")
 
+    # Make sure sample_dist is set 
     if not isinstance(sample_dist, (float, int)) or (not sample_dist > 0):
         raise TypeError("Please make sure that the sample_dist argument is set to a positive integer")
     
+    # Make sure observer_height is set
     if not isinstance(observer_height, (float, int)) or (not observer_height > 0):
         raise TypeError("Please make sure that the observer_height argument is set to a positive integer")
 
@@ -151,6 +155,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
             else:
                 print("Warning: Not all polygons of interest are completely within the area covered by the DTM file provided, results will be based on intersecting part of polygons involved \n")
     
+    # Create metadata for object that will be passed into viewshed GVI function
     meta = {
         'height': dtm.shape[0],
         'width': dtm.shape[1],
@@ -184,12 +189,14 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
             else:
                 print("Warning: Not all polygons of interest are completely within the area covered by the Greenspace file provided, results will be based on intersecting part of polygons involved \n")
 
+    # Specify variables that will be used in GVI function
     options = {
         'radius': viewing_dist, 
         'o_height': observer_height,  # 1.7 meters (typical height of a person)
         't_height': 0  # 0 meters (the target is the ground)
     }
 
+    # Create object that will be used for GVI function
     mask = {
         'meta': meta,
         'options': options,
@@ -200,6 +207,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
     ### Step 2: Retrieve network, use OSM if not provided
     if network_file is not None:
+        # Make sure network file is provided either as geopackage or shapefile
         if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
             raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
         elif network_file is not None and (os.path.splitext(network_file)[1] == ".gpkg"):
@@ -207,6 +215,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         else: 
             graph_projected_edges = gpd.read_file(network_file)
 
+        # Make sure network file has same CRS as poi file
         if not graph_projected_edges.crs.to_epsg() == epsg:
             print("Adjusting CRS of Network file to match with Point of Interest CRS...")
             graph_projected_edges.to_crs(f'EPSG:{epsg}', inplace=True)
@@ -217,17 +226,23 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         if not all(geom.within(bbox_network) for geom in poi['geometry']):
             raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
     else:
+        # Determine polygon that contains total bounds of poi file, incl. buffer distance if specified
         if buffer_dist is None:
             poi_polygon = sg.box(*poi.total_bounds)
         else:
             poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
-        polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
-        wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326
+        # Transform to 4326 for OSM
+        polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
+        # Extract polygon in EPSG 4326
+        wgs_polygon = polygon_gdf_wgs['geometry'].values[0] 
 
         print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by the buffer_dist in case provided...")
         start_network_retrieval = time()
+        # Extract network from OpenStreetMap
         network_graph = ox.graph_from_polygon(wgs_polygon, network_type='all')
+        # Project network to original poi file CRS
         graph_projected = ox.project_graph(network_graph, to_crs=f"EPSG:{epsg}")
+        # Save network edges in dataframe
         graph_projected_edges = ox.graph_to_gdfs(graph_projected, nodes=False, edges=True)
         end_network_retrieval = time()
         elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
@@ -236,8 +251,9 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     ### Step 3: Define sample points on road network for calculating GVI scores
     print("Computing sample points for roads within area of interest's network...")
     start_sample_points = time()
+    # Get road sample locations based on sample_dist
     poi['sampled_points'] = poi.apply(lambda row: get_network_sample_points(df_row=row, network_edges=graph_projected_edges, buffer_dist=buffer_dist, sample_dist=sample_dist), axis=1)
-    # Explode the 'sampled_points' column
+    # Explode the 'sampled_points' column so that each point location is stored in new row
     sampled_points_exploded = poi.explode('sampled_points')[['id','sampled_points']].reset_index(drop=True).rename(columns={'sampled_points': 'geometry'})
     sampled_points_gdf = gpd.GeoDataFrame(sampled_points_exploded, crs=f'EPSG:{epsg}').reset_index(drop=True)
     end_sample_points = time()
@@ -256,8 +272,10 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
+        # Create output directory if the one specified by user does not yet exist
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_added.gpkg"), driver="GPKG")
         sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_sampled_points.gpkg"), driver="GPKG")
