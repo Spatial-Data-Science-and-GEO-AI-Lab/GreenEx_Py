@@ -5,6 +5,8 @@ Done:
 - Implement V1 of Streetview GVI based on Ilse's code
 - Clean repository
 - Implement accessibility changes
+- Implement availability changes
+- Add comments to own functions
 
 
 Difficulties:
