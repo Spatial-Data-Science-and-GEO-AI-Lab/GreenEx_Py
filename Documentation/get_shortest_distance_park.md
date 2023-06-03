@@ -1,4 +1,4 @@
-**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, destination="centroids",network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd())**
+**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd())**
 
 > Assess whether or not parks are located within a threshold network distance for points of interest.
 
@@ -13,6 +13,8 @@
 >> - target_dist *(int)* – threshold distance surrounding the point locations in which parks should be located.
 
 >> - park_vector_file *(string)* – optional, the absolute or relative path to the vector file containing park data. In case no file is provided, park data will be retrieved from OpenStreetMap.
+
+>> - distance_type *(string {"euclidian", "network"})* – the way in which the shortest distance to a park should be calculated, straight line distance (euclidian) or network distance (network). By default, argument is set to euclidian. Note that if set to network, processing times might increase significantly in case many points/polygons of interest are provided in the point_of_interest file.
 
 >> - destination *(string {"centroids", "entrance"})* – the destination points for the parks. If "entrance", network distances will be computed between the point location's nearest network node and the network nodes that are within 20 meters of the park boundaries - therefore considered as (fake) entry points. Euclidian distance between point location and nearest network node will be added. If "centroids", the same procedure applies while also taking into account the euclidian distance between the park's centroid and fake entry points.
 
