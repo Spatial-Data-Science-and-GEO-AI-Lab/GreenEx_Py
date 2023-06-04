@@ -33,9 +33,13 @@ import geopandas as gpd
 # Path to data
 path = "C:/Users/ygrin/Documents/Studie - MSc ADS/Utrecht University/Block 4 - Thesis/TestData/"
 example_data = gpd.read_file(path + "Test_multiple_home_locations.gpkg")
-display(example_data)
-```
 
+# Resulting geodataframe with example data looks as follows
+	id	geometry
+0	1	POINT (388644.249 392861.634)
+1	2	POINT (385981.911 393805.494)
+2	3	POINT (388631.230 395322.181)
+```
 ## *Availability*
 Greenspace availability is measured by four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
 <br><br>
@@ -54,28 +58,57 @@ To illustrate the differences between the latter two, the following figure was g
 ![Difference Euclidian and Network buffer](Plots/eucl_network.png)
 
 
-The four availability functions are briefly described hereunder.
+The four availability functions are briefly described hereunder. As mentioned before, for a more detailed overview of the function arguments, requirements and output, please look into the documentation section of the module.
 
-### get_mean_NDVI
+### **get_mean_NDVI**
+This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+
+Additionally, users may provide a raster file with NDVI values. If not provided, sentinel-2-l2a data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the NDVI raster. The NDVI raster which was created for the three locations of the example data is included in the following figure;
 
 ![NDVI raster](Plots/ndvi.png)
 
-### get_landcover_percentages
+Now, the mean NDVI for the designated areas can be calculated by applying the following code;
+
+```python
+availability.get_mean_NDVI(point_of_interest_file=test_path+"Test_multiple_home_locations.gpkg",
+                           buffer_type="euclidian",
+                           buffer_dist=500,
+                           write_to_file=False,
+                           save_ndvi=False)
+
+# Information provided while function was running
+Retrieving NDVI raster through planetary computer...
+Information on the satellite image retrieved from planetary computer, use to calculate NDVI values:              
+   Date on which image was generated: 2023-04-04T22:36:14.894809Z              
+   Percentage of cloud cover: 8.471548              
+   Percentage of pixels with missing data 0.000123
+Done, running time: 0:00:08.906117 
+
+Calculating mean NDVI values...
+Done, running time: 0:00:00.256659
+
+# Function output
+	id	geometry	                    mean_NDVI
+0	1	POINT (388644.249 392861.634)	0.260
+1	2	POINT (385981.911 393805.494)	0.218
+2	3	POINT (388631.230 395322.181)	0.283
+```
+### **get_landcover_percentages**
 
 ![Landcover raster](Plots/landcover.png)
 
-### get_canopy_percentage
-### get_park_percentage
+### **get_canopy_percentage**
+### **get_park_percentage**
 
 ## *Accessibility*
 
-### get_shortest_distance_park
+### **get_shortest_distance_park**
 
 ## *Visibility*
 
-### get_streetview_GVI
+### **get_streetview_GVI**
 
-### get_viewshed_GVI
+### **get_viewshed_GVI**
 
 ## Sources
 - Retrieving road network: [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/)
