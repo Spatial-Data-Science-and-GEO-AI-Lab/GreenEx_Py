@@ -70,7 +70,7 @@ Additionally, users may provide a raster file with NDVI values. If not provided,
 Now, the mean NDVI for the designated areas can be calculated by applying the following code;
 
 ```python
-availability.get_mean_NDVI(point_of_interest_file=test_path+"Test_multiple_home_locations.gpkg",
+availability.get_mean_NDVI(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
                            buffer_type="euclidian",
                            buffer_dist=500,
                            write_to_file=False,
@@ -88,7 +88,7 @@ Calculating mean NDVI values...
 Done, running time: 0:00:00.256659
 
 # Function output
-	id	geometry	                    mean_NDVI
+	id	geometry                        mean_NDVI
 0	1	POINT (388644.249 392861.634)	0.260
 1	2	POINT (385981.911 393805.494)	0.218
 2	3	POINT (388631.230 395322.181)	0.283
