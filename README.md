@@ -5,13 +5,15 @@
 - [Installation](#Installation)
 - [Functionalities](#Functionalities)
     - [Availability](#Availability)
-        - [Mean NDVI](#Mean-NDVI)
-        - [Percentages for land cover classes](#Percentages-for-land-cover-classes)
-        - [Percentage of canopy coverage](#Percentage-of-canopy-coverage)
-        - [Percentage of park area coverage](#Percentage-of-park-area-coverage)
+        - [Mean NDVI](#get_mean_NDVI)
+        - [Percentages for land cover classes](#get_landcover_percentages)
+        - [Percentage of canopy coverage](#get_canopy_percentage)
+        - [Percentage of park area coverage](#get_park_percentage)
     - [Accessibility](#Accessibility)
-        - [Shortest distance to park](#Shortest-distance-to-park)
+        - [Shortest distance to park](#get_shortest_distance_park)
     - [Visibility](#Visibility)
+        - [Streetview GVI](#get_streetview_GVI)
+        - [Viewshed GVI](#get_viewshed_GVI)
 - [Sources](#Sources)
 
 # Installation
@@ -58,11 +60,18 @@ The four availability functions are briefly described hereunder.
 
 ## *Accessibility*
 
-### Shortest distance to park
+### get_shortest_distance_park
 
 ## *Visibility*
 
+### get_streetview_GVI
+
+### get_viewshed_GVI
+
 ## Sources
-- OSM
-- Planetary Computer
-- ESA WorldCover
+- Retrieving road network: [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/)
+- Retrieving satellite images for NDVI and landcover calculations: [Planetary Computer](https://planetarycomputer.microsoft.com/)
+- Calculating GVI based on viewshed analysis: [Jonny Huck & Labib Labib](https://github.com/jonnyhuck/green-visibility-index/tree/master)
+- Calculating GVI based on streetview images: [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility)
+- Computing sample road locations from network: [Ondrej Mlynarcik](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb)
+- Creation of network buffer isochrones: [Geoff Boeing](https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb)
