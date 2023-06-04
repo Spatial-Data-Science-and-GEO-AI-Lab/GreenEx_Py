@@ -25,7 +25,16 @@ This python module models greenspace exposure from three perspectives; availabil
 - Accessibility in this case relates to the proximity of greenspaces. 
 - Visibility refers to the extent to which greenspaces are visible from particular locations. 
 
-The functions which were created to model the greenspace exposure as defined by these three perspectives will be further explained below. 
+The functions which were created to model the greenspace exposure as defined by these three perspectives will be further explained below by providing examples using the following data;
+
+```python
+import geopandas as gpd
+
+# Path to data
+path = "C:/Users/ygrin/Documents/Studie - MSc ADS/Utrecht University/Block 4 - Thesis/TestData/"
+example_data = gpd.read_file(path + "Test_multiple_home_locations.gpkg")
+display(example_data)
+```
 
 ## *Availability*
 Greenspace availability is measured by four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
