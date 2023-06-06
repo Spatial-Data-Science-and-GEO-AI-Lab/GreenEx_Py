@@ -41,7 +41,7 @@ import requests
 
 # Libraries for Concurrency and File Manipulation
 from concurrent.futures import ThreadPoolExecutor, as_completed 
-import multiprocessing as mp 
+import threading
 
 # Progress Tracking
 from tqdm import tqdm
@@ -285,15 +285,17 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
 
 def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None,
-                       sample_dist=50, network_file=None, write_to_file=True, output_dir=os.getcwd()):
+                       network_file=None, write_to_file=True, output_dir=os.getcwd()):
     
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
+    # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
+    # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
         if crs_epsg is None:
             print("Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to CRS with EPSG:3395")
@@ -316,16 +318,19 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
             geom_type = poi.iloc[0]['geometry'].geom_type
             print("Done \n")
 
+    # Make sure poi dataframe has id column
     if "id" in poi.columns:
         if poi['id'].isnull().values.any():
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
+    # Make sure buffer distance is set in case geometries of poi file are of point type
     if geom_type == "Point":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
 
+    # Make sure Mapillary API token is provided
     if access_token is None:
         raise TypeError("Please make sure that an access token for Mapillary is provided")
     
@@ -336,10 +341,13 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     else:
         poi_polygon = box(*poi.total_bounds).buffer(buffer_dist)
         poi['buffer'] = poi['geometry'].buffer(buffer_dist)
-    polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") # Transform to 4326 for OSM
-    wgs_polygon = polygon_gdf_wgs['geometry'].values[0] # Extract polygon in EPSG 4326
+    # Transform to 4326 for OSM
+    polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
+    # Extract polygon in EPSG 4326
+    wgs_polygon = polygon_gdf_wgs['geometry'].values[0] 
 
     if network_file is not None:
+        # Make sure network file is either provided as geopackage or shapefile
         if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
             raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
         elif network_file is not None and (os.path.splitext(network_file)[1] == ".gpkg"):
@@ -347,6 +355,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
         else: 
             network_edges = gpd.read_file(network_file)
 
+        # Make sure network file CRS is same as CRS of poi file
         if not network_edges.crs.to_epsg() == epsg:
             print("Adjusting CRS of Network file to match with Point of Interest CRS...")
             network_edges.to_crs(f'EPSG:{epsg}', inplace=True)
@@ -359,6 +368,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     else:
         print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by the buffer_dist in case provided...")
         start_network_retrieval = time()
+        # Extract network from OpenStreetMap
         network_edges = get_road_network_with_points(wgs_polygon, epsg=epsg)
         end_network_retrieval = time()
         elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
@@ -366,7 +376,9 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
 
     print("Computing sample points for roads within area of interest's network...")
     start_sample_points = time()
+    # Get sample points on network roads
     road_points = select_points_on_road_network(network_edges)
+    # Filter points to maintain the ones that are within the buffers of the poi geometries
     buffer_points = select_points_within_buffers(poi, road_points)
     end_sample_points = time()
     elapsed_sample_points = end_sample_points - start_sample_points
@@ -374,7 +386,10 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     
     print("Downloading StreetView images for road sample points...")
     start_images = time()
-    features = get_features_on_points(buffer_points, access_token)
+    # Retrieve features, images, from Mapillary for the road locations
+    features = get_features_on_points(buffer_points, access_token, epsg)
+    #gvi_per_point = download_images_for_points(features, access_token, epsg)
+    # Process the features and calculate GVI score for road locations
     gvi_per_point = download_images_for_points(features, access_token, epsg)
     end_images = time()
     elapsed_images = end_images - start_images
@@ -382,6 +397,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     
     print("Calculating StreetView GVI score...")
     start_calc = time()
+    # Calculate average GVI for each geometry in poi dataframe
     poi, sampled_points_gdf = get_gvi_per_buffer(poi, gvi_per_point)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
@@ -391,8 +407,10 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
+        # Create output directory if the one specified by user does not yet exist
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
+        # Extract filename of poi file to add information when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_StreetviewGVI_added.gpkg"), driver="GPKG")
         sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_StreetviewGVI_sampled_points.gpkg"), driver="GPKG")
@@ -554,44 +572,62 @@ def get_network_sample_points(df_row, network_edges, buffer_dist, sample_dist):
 
 
 def get_road_network_with_points(poi_polygon, epsg):
-    # Get the road network within the bounding box
+    # Get the road network within the poi polygon
     G = ox.graph_from_polygon(poi_polygon, network_type='drive', simplify=True)
 
+    # Create a set to store unique road identifiers
+    unique_roads = set()
+    # Create a new graph to store the simplified road network
+    G_simplified = G.copy()
+
+    # Iterate over each road segment
+    for u, v, key, data in G.edges(keys=True, data=True):
+        # Check if the road segment is a duplicate
+        if (v, u) in unique_roads:
+            # Remove the duplicate road segment
+            G_simplified.remove_edge(u, v, key)
+        else:
+            # Add the road segment to the set of unique roads
+            unique_roads.add((u, v))
+    
+    # Update the graph with the simplified road network
+    G = G_simplified
+    
     #Project the graph from latitude-longitude coordinates to a local projection (in meters)
     G_proj = ox.project_graph(G, to_crs=f"EPSG:{epsg}")
 
-    # Convert the projected graph to a GeoDataFrame
+    # Store graph edges in geodataframe
     edges = ox.graph_to_gdfs(G_proj, nodes=False, edges=True)
 
     return edges
 
 
 # Get a list of points over the road map with a N distance between them
-def select_points_on_road_network(network_edges, distance=50):
-    # Initialize a list to store the points
+def select_points_on_road_network(roads, N=50):
     points = []
+    # Iterate over each road
+    
+    for row in roads.itertuples(index=True, name='Road'):
+        # Get the LineString object from the geometry
+        linestring = row.geometry
 
-    # Loop through each road in the road network graph
-    for road in network_edges.geometry:
-        # Calculate the total length of the road
-        road_length = road.length
-
-        # Start at the beginning of the road
-        current_position = 0
-
-        # Loop through the road, adding points every 50 meters
-        while current_position < road_length:
+        # Calculate the distance along the linestring and create points every 50 meters
+        for distance in range(0, int(linestring.length), N):
             # Get the point on the road at the current position
-            current_point = road.interpolate(current_position)
+            point = linestring.interpolate(distance)
 
             # Add the curent point to the list of points
-            points.append(current_point)
-
-            # Increment the position by the desired distance
-            current_position += distance
+            points.append(point)
     
     # Convert the list of points to a GeoDataFrame
-    gdf_points = gpd.GeoDataFrame(geometry=points, crs=network_edges.crs)
+    gdf_points = gpd.GeoDataFrame(geometry=points)
+
+    # Set the same CRS as the road dataframes for the points dataframe
+    gdf_points.set_crs(roads.crs, inplace=True)
+
+    # Drop duplicate rows based on the geometry column
+    gdf_points = gdf_points.drop_duplicates(subset=['geometry'])
+    gdf_points = gdf_points.reset_index(drop=True)
 
     return gdf_points
 
@@ -613,15 +649,15 @@ def get_features_for_tile(tile, access_token):
     return [tile, result]
 
 
-def get_features_on_points(buffer_points, access_token, zoom=14):
+def get_features_on_points(buffer_points, access_token, epsg, max_distance=100, zoom=14):
     # Transform the coordinate reference system to EPSG 4326
     buffer_points_wgs = buffer_points.copy(deep=True).to_crs(epsg=4326)
 
     # Add a new column to gdf_points that contains the tile coordinates for each point
-    buffer_points['tile'] = [mercantile.tile(x, y, zoom) for x, y in zip(buffer_points_wgs.geometry.x, buffer_points_wgs.geometry.y)]
+    buffer_points["tile"] = [mercantile.tile(x, y, zoom) for x, y in zip(buffer_points_wgs.geometry.x, buffer_points_wgs.geometry.y)]
 
     # Group the points by their corresponding tiles
-    groups = buffer_points.groupby('tile')
+    groups = buffer_points.groupby("tile")
 
     # Download the tiles and extract the features for each group
     features = []
@@ -639,25 +675,54 @@ def get_features_on_points(buffer_points, access_token, zoom=14):
     pd_features = pd.DataFrame(features, columns=["tile", "features"])
 
     # Compute distances between each feature and all the points in gdf_points
-    feature_points = pd.DataFrame(
+    feature_points = gpd.GeoDataFrame(
         [(Point(f["geometry"]["coordinates"]), f) for row in pd_features["features"] for f in row["features"]],
-        columns=["geometry", "feature"]
+        columns=["geometry", "feature"],
+        geometry="geometry",
+        crs=4326
     )
-    feature_tree = cKDTree(feature_points["geometry"].apply(lambda p: [p.x, p.y]).tolist())
-    _, indices = feature_tree.query(buffer_points_wgs["geometry"].apply(lambda p: [p.x, p.y]).tolist())
 
-    # Select the closest feature for each point
-    buffer_points["feature"] = feature_points.loc[indices, "feature"].tolist()
+    # Transform from EPSG:4326 (world °) to EPSG of poi file
+    feature_points.to_crs(f"EPSG:{epsg}", inplace=True)
+
+    feature_tree = cKDTree(feature_points["geometry"].apply(lambda p: [p.x, p.y]).tolist())
+    distances, indices = feature_tree.query(buffer_points["geometry"].apply(lambda p: [p.x, p.y]).tolist(), k=1, distance_upper_bound=max_distance)
+
+    # Create a list to store the closest features and distances
+    closest_features = [feature_points.loc[i, "feature"] if np.isfinite(distances[idx]) else None for idx, i in enumerate(indices)]
+    closest_distances = [distances[idx] if np.isfinite(distances[idx]) else None for idx in range(len(distances))]
+
+    # Store the closest feature for each point in the "feature" column of the points DataFrame
+    buffer_points["feature"] = closest_features
+
+    # Store the distances as a new column in points
+    buffer_points["distance"] = closest_distances
+
+    # Store image id and is panoramic information as part of the dataframe
+    buffer_points["image_id"] = buffer_points.apply(lambda row: str(row["feature"]["properties"]["id"]) if row["feature"] else "", axis=1)
+    buffer_points["image_id"] = buffer_points["image_id"].astype(str)
+    
+    buffer_points["is_panoramic"] = buffer_points.apply(lambda row: bool(row["feature"]["properties"]["is_pano"]) if row["feature"] else None, axis=1)
+    buffer_points["is_panoramic"] = buffer_points["is_panoramic"].astype(bool)
 
     # Convert results to geodataframe
-    buffer_points['tile'] = buffer_points['tile'].astype(str)
+    buffer_points["tile"] = buffer_points["tile"].astype(str)
+
+    # Save the current index as a column
+    buffer_points["point_id"] = buffer_points.index
+
+    # Reset the index
+    buffer_points = buffer_points.reset_index(drop=True)
     
     return buffer_points
 
 
 def get_models():
     processor = AutoImageProcessor.from_pretrained("facebook/mask2former-swin-large-cityscapes-semantic")
+    # setting device on GPU if available, else CPU
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = Mask2FormerForUniversalSegmentation.from_pretrained("facebook/mask2former-swin-large-cityscapes-semantic")
+    model = model.to(device)
     return processor, model
 
 
@@ -715,7 +780,6 @@ def crop_panoramic_images(original_width, image, segmentation, road_centre):
     w98 = width + (w4 / 2)
     xrapneeded = int(width * 7 / 8)
 
-    images = []
     pickles = []
     # Crop the panoramic image
     for centre in road_centre:
@@ -763,11 +827,10 @@ def crop_panoramic_images(original_width, image, segmentation, road_centre):
             xlo = int(centre - w4/2)
             cropped_image = image.crop((xlo, h4, xlo + w4, h4 + hFor43))
             cropped_segmentation = segmentation[h4:h4+hFor43, xlo:xlo+w4]
-        
-        images.append(cropped_image)
+
         pickles.append(cropped_segmentation)
 
-    return images, pickles
+    return pickles
 
 
 def segment_images(image, processor, model):
@@ -775,11 +838,14 @@ def segment_images(image, processor, model):
     
     # Forward pass
     with torch.no_grad():
-        outputs = model(**inputs)
-    
-    # You can pass them to processor for postprocessing
-    segmentation = processor.post_process_semantic_segmentation(outputs, target_sizes=[image.size[::-1]])[0]
-
+        if torch.cuda.is_available():
+            inputs = {k: v.to('cuda') for k, v in inputs.items()}
+            outputs = model(**inputs)
+            segmentation = processor.post_process_semantic_segmentation(outputs, target_sizes=[image.size[::-1]])[0].to('cpu')
+        else:
+            outputs = model(**inputs)
+            segmentation = processor.post_process_semantic_segmentation(outputs, target_sizes=[image.size[::-1]])[0]
+            
     return segmentation
 
 
@@ -824,9 +890,8 @@ def process_images(image_url, is_panoramic, processor, model):
 
         if len(road_centre) > 0:
             if is_panoramic:
-                images, pickles = crop_panoramic_images(width, image, segmentation_road, road_centre)
+                pickles = crop_panoramic_images(width, image, segmentation_road, road_centre)
             else:
-                images = [image]
                 pickles = [segmentation]
         
             # Now we can get the Green View Index
@@ -838,89 +903,61 @@ def process_images(image_url, is_panoramic, processor, model):
     except:
         return [None, None, True, True]
 
+def download_image(id, geometry, image_id, is_panoramic, access_token, processor, model):
+    if image_id:
+        try:
+            header = {'Authorization': 'OAuth {}'.format(access_token)}
+        
+            url = 'https://graph.mapillary.com/{}?fields=thumb_original_url'.format(image_id)
+            response = requests.get(url, headers=header)
+            data = response.json()
+            image_url = data["thumb_original_url"]
 
-def download_image(geometry, image_metadata, access_token, processor, model):
-    header = {'Authorization': 'OAuth {}'.format(access_token)}
-
-    image_id = image_metadata["properties"]["id"]
-    is_panoramic = image_metadata["properties"]["is_pano"]
+            result = process_images(image_url, is_panoramic, processor, model)
+        except:
+            # There was an error during the downloading of the image
+            result = [None, None, True, True]
+    else:
+        # The point doesn't have an image, then we set the missing value to true
+        result = [None, None, True, False]
     
-    url = 'https://graph.mapillary.com/{}?fields=thumb_original_url'.format(image_id)
-    response = requests.get(url, headers=header)
-    data = response.json()
-    image_url = data["thumb_original_url"]
-
-    result = process_images(image_url, is_panoramic, processor, model)
     result.insert(0, geometry)
+    result.insert(0, id)
 
     return result
+    
 
-
-def process_data(index, data_part, processor, model, access_token, max_workers):
+def download_images_for_points(gdf, access_token, epsg, max_workers=4):
+    processor, model = get_models()
+    gdf_wgs = gdf.copy(deep=True).to_crs("EPSG:4326")
+    # Create a lock object
     results = []
-
+    lock = threading.Lock()
+        
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = []
-        for _, row in data_part.iterrows():
-            feature = row["feature"]
-            geometry = row["geometry"]
-            futures.append(executor.submit(download_image, geometry, feature, access_token, processor, model))
-    
-        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Downloading images (Process {index})"):
+
+        for _, row in gdf_wgs.iterrows():
+            try:
+                futures.append(executor.submit(download_image, row["point_id"], row["geometry"], row["image_id"], row["is_panoramic"], access_token, processor, model))
+            except Exception as e:
+                print(f"Exception occurred for row {row['id']}: {str(e)}")
+        
+        for future in tqdm(as_completed(futures), total=len(futures), desc=f"Downloading images"):
             image_result = future.result()
-            results.append(image_result)
-        return results
+
+            # Acquire the lock before appending to results
+            with lock:
+                results.append(image_result)
+        
+    # Combine the results from all parts
+    final_results = gpd.GeoDataFrame(results, columns=["point_id", "geometry", "GVI", "is_panoramic", "missing", "error"], crs="EPSG:4326").to_crs(f"EPSG:{epsg}")
     
-'''
-def download_images_for_points(gdf, access_token, epsg, max_workers=1):
-    processor, model = get_models()
-    
-    gdf_wgs = gdf.copy(deep=True).to_crs("EPSG:4326")
-
-    images_results = []
-
-    # Split the dataset into parts
-    num_processes = mp.cpu_count() # Get the number of CPU cores
-    data_parts = np.array_split(gdf_wgs, num_processes) # Split the dataset
-    
-    with mp.get_context("spawn").Pool(processes=num_processes) as pool:
-        # Apply the function to each part of the dataset using multiprocessing
-        results = pool.starmap(process_data, [(index, data_part, processor, model, access_token, max_workers) for index, data_part in enumerate(data_parts)])
-
-        # Combine the results from all parts
-        images_results = [result for part_result in results for result in part_result]
-
-        # Close the pool to release resources
-        pool.close()
-        pool.join()
-
-    images_results_gdf = gpd.GeoDataFrame(images_results, columns=["geometry", "GVI", "is_panoramic", "missing", "error"], crs="EPSG:4326").to_crs(f"EPSG:{epsg}")
-    return images_results_gdf
-'''
-
-def download_images_for_points(gdf, access_token, epsg, max_workers=1):
-    processor, model = get_models()
-
-    gdf_wgs = gdf.copy(deep=True).to_crs("EPSG:4326")
-
-    images_results = []
-
-    # Split the dataset into parts
-    num_processes = 1
-    data_parts = np.array_split(gdf_wgs, num_processes)
-
-    # Sequential execution without multiprocessing
-    for index, data_part in enumerate(data_parts):
-        part_results = process_data(index, data_part, processor, model, access_token, max_workers)
-        images_results.extend(part_results)
-
-    images_results_gdf = gpd.GeoDataFrame(images_results, columns=["geometry", "GVI", "is_panoramic", "missing", "error"], crs="EPSG:4326").to_crs(f"EPSG:{epsg}")
-    return images_results_gdf
-
+    return final_results
 
 def get_gvi_per_buffer(buffered_points, gvi_per_point):
     joined = gpd.sjoin(gvi_per_point, buffered_points.set_geometry('buffer'), how='inner', predicate='within').drop('index_right', axis=1)
-    
+
     # Group the points by buffer
     grouped = joined.groupby('id', group_keys=True)
     # Convert 'grouped' to a DataFrame
@@ -930,7 +967,7 @@ def get_gvi_per_buffer(buffered_points, gvi_per_point):
     grouped_gdf = gpd.GeoDataFrame(grouped_df, geometry='geometry_left').rename(columns={'geometry_left':'geometry'}).drop('level_1', axis=1)
     grouped_gdf = grouped_gdf.set_geometry('geometry')
     # Calculate the average 'gvi' for each group
-    avg_gvi = np.round(grouped['GVI'].mean(),3).reset_index()
+    avg_gvi = grouped['GVI'].mean().reset_index()
     nr_of_points = grouped['GVI'].count().reset_index(name='nr_of_points')
     # Merge with the buffered_points dataframe to get the buffer geometries
     result = avg_gvi.merge(buffered_points, left_on='id', right_on='id')

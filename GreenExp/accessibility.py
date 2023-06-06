@@ -19,8 +19,8 @@ from time import time
 from datetime import timedelta
 
 ##### MAIN FUNCTIONS
-def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian",
-                               destination="centroids", network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd()):
+def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidean",
+                               destination="centroids", network_type="all", write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
@@ -60,8 +60,8 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         raise TypeError("Please make sure that the target distance is set as a positive integer")
 
     # Make sure distance_type has valid value
-    if distance_type not in ["euclidian", "network"]:
-        raise TypeError("Please make sure that the distance_type argument is set to either 'euclidian' or 'network'")
+    if distance_type not in ["euclidean", "network"]:
+        raise TypeError("Please make sure that the distance_type argument is set to either 'euclidean' or 'network'")
 
     # Warn users for extensive processing times in case distance_type set to network
     if distance_type == "network":
@@ -111,30 +111,8 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     # Assign an id to all parks to identify them at later stage
     park_src['park_id'] = list(range(len(park_src)))
 
-    ### Step 3: Read network, retrieve from OSM if not provided by user 
-    if network_file is not None:
-        # Make sure network file is provided either as geopackage or shapefile
-        if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-            raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
-        elif network_file is not None and (os.path.splitext(network_file)[1] == ".gpkg"):
-            network = gpd.read_file(network_file, layer='edges')
-        else: 
-            network = gpd.read_file(network_file)
-
-        # Make sure network file has same CRS as poi file
-        if not network.crs.to_epsg() == epsg:
-            print("Adjusting CRS of Network file to match with Point of Interest CRS...")
-            network.to_crs(f'EPSG:{epsg}', inplace=True)
-            print("Done \n")
-
-        # Check if poi locations are within network file provided
-        bbox_network = network.unary_union.envelope
-        if not all(geom.within(bbox_network) for geom in poi['geometry']):
-            raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
-
-        # Convert network to graph object using momempy
-        network_graph = momepy.gdf_to_nx(network)
-    else:
+    ### Step 3: Retrieve network from OSM if distance type is network or destination is fake entrance points
+    if distance_type == "network" or destination == "entrance":
         # Make sure network_type has valid value
         if network_type not in ["walk", "bike", "drive", "all"]:
             raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
@@ -148,6 +126,8 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         end_network_retrieval = time()
         elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+    else:
+        graph_projected = None
     
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
@@ -171,28 +151,28 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
 
 ##### SUPPORTING FUNCTIONS
 def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=None, network_graph=None, park_src=None, destination=None):   
-    ### Step 1: Clip park boundaries to poi incl. buffer to minimize possible destination points
+    # Clip park boundaries to poi incl. buffer to minimize possible destination points
     park_src_buffer = park_src.clip(df_row['geometry'].buffer(target_dist))
-    
-    ### Step 2: Retrieve nearest network node for house location and calculate euclidian distance between these points
-    # Euclidian distance will be added to network distance to minimize distance error
-    nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
-
-    ### Step 3: Create subgraph to only consider network in point's proximity -- save time 
-    subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
-
-    ### Step 4: Create fake entry points for parks by getting network nodes that are within 20m of park boundaries
-    pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} # Create dictionary to extract geometries for nodes of interest
-    
-    # For each park, retrieve the network nodes which are within 20m of the park boundary and store in dictionary
-    park_boundary_nodes = {}
-    for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
-        boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
-        park_boundary_nodes[park_id] = boundary_nodes
     
     # Evaluate distance type provided by user
     if distance_type == "network":
-        ### Step 5: Calculate the network distances between the house location's nearest node and the fake park entry points
+        # Retrieve nearest network node for house location and calculate euclidean distance between these points
+        # euclidean distance will be added to network distance to minimize distance error
+        nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
+
+        # Create subgraph to only consider network in point's proximity -- save time 
+        subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
+
+        # Create dictionary to extract geometries for nodes of interest
+        pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
+        
+        # For each park, retrieve the network nodes which are within 20m of the park boundary and store in dictionary (fake entry points)
+        park_boundary_nodes = {}
+        for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
+            boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
+            park_boundary_nodes[park_id] = boundary_nodes
+
+        # Calculate the network distances between the house location's nearest node and the fake park entry points
         # Add penalty_home as defined before to network distance, as well as penalty_centroid in case user defined destination argument as "centroids"
         penalty_home = df_row['geometry'].distance(sg.Point(network_graph.nodes[nearest_node]['x'], network_graph.nodes[nearest_node]['y']))
         distances = {}
@@ -201,7 +181,7 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
                 try:
                     path = nx.shortest_path(subgraph, nearest_node, node, weight='length')
                     if destination == "centroids": 
-                        # Calculate euclidian distance between the fake park entry points and the corresponding park's centroid to minimize distance error
+                        # Calculate euclidean distance between the fake park entry points and the corresponding park's centroid to minimize distance error
                         penalty_centroid = park_src_buffer[park_src_buffer['park_id'] == park_id]['centroid'].iloc[0].distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
                         distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home + penalty_centroid
                     else:
@@ -216,7 +196,7 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         else:
             min_distance = np.nan
     else:
-        ### Step 5: Calculate the euclidian distance between the house location and the nearest fake park entry point/park centroid
+        # Calculate the euclidean distance between the house location and the nearest fake park entry point/park centroid
         poi_coords = (df_row['geometry'].x, df_row['geometry'].y)
         if destination == "centroids": 
             centroid_coordinates = [(geom.x, geom.y) for geom in park_src_buffer['centroid']]
@@ -224,6 +204,15 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
             min_distance, _ = kd_tree.query(poi_coords)
             min_distance = round(min_distance,0)
         else:
+            nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
+            subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
+            pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
+            
+            park_boundary_nodes = {}
+            for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
+                boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
+                park_boundary_nodes[park_id] = boundary_nodes
+
             entrance_points = [pos[node] for node_lists in park_boundary_nodes.values() for node in node_lists]
             kd_tree = cKDTree(entrance_points)
             min_distance, _ = kd_tree.query(poi_coords)

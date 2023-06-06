@@ -36,7 +36,7 @@ from io import BytesIO
 
 ##### MAIN FUNCTIONS
 def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                  buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, 
+                  buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, 
                   write_to_file=True, save_ndvi=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -63,11 +63,8 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
 
     # Make sure buffer distance and type are set in case of point geometries
     if geom_type == "Point":
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
-
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        if buffer_type not in ["euclidean", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
 
     # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
@@ -91,6 +88,34 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
+
+    # Make sure the buffer_type argument has a valid value if not None
+    if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
+        raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+
+    # If buffer type is set to euclidean, make sure that the buffer distance is set
+    if buffer_type == "euclidean":
+            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+                raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+    
+    # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
+    if buffer_type == "network":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            else:
+                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
+                # Convert km per hour to m per minute
+                meters_per_minute = travel_speed * 1000 / 60 
+                # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
+                buffer_dist = trip_time * meters_per_minute * 1.25
+        else:
+            # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
+            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+                raise TypeError("Please make sure that one of the following requirements is met:\
+                                \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
+                                \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
+            speed_time = False
 
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
@@ -157,7 +182,8 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
             # Save the image to a file
             image.save(os.path.join(output_dir, f"{input_filename}_ndvi_satellite_image.png"))
-            print("NDVI satellite image successfully saved as image")
+            ndvi_src.rio.to_raster(os.path.join(output_dir, f"{input_filename}_ndvi_raster.tif"))
+            print("Satellite image and created NDVI raster successfully saved to file")
         end_ndvi_retrieval = time()
         elapsed_ndvi_retrieval = end_ndvi_retrieval - start_ndvi_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_ndvi_retrieval))} \n")
@@ -185,94 +211,57 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         # Buffer type == None implies that provided polygons serve as areas of interest
         aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
-        # Make sure the buffer_type argument has a valid value
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-
-        # Make sure buffer distance is set in case buffer_type set to "euclidian"
-        if buffer_type == "euclidian":
-            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
-
-            # Create area of interest based on euclidian distance
+        if buffer_type == "euclidean":
+            # Create area of interest based on euclidean distance
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
         else:
-            # Make sure travel speed argument is set 
-            if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-            # Make sure trip time arugment is set
-            if not isinstance(trip_time, int) or (not trip_time > 0):
-                raise TypeError("Please make sure that the trip time is set as a positive integer")
-
+            # Make sure network type argument has valid value
+            if network_type not in ["walk", "bike", "drive", "all"]:
+                raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+            
             # If poi file still contains polygon geometries, compute centroids so that isochrone maps can be created
             if geom_type == "Polygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n")
-                        
-            if network_file is None:
-                # Make sure network type argument has valid value
-                if network_type not in ["walk", "bike", "drive", "all"]:
-                    raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
-                
-                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
-                start_network_retrieval = time()
-                # Transform total bounds polygon of poi file to 4326 for OSM
-                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
-                # Extract polygon in EPSG 4326 
-                wgs_polygon = polygon_gdf_wgs['geometry'].values[0]        
-                # Retrieve street network for desired network type
-                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
-                # Project street network graph back to original poi CRS
-                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
-                end_network_retrieval = time()
-                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")            
+            
+            print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+            start_network_retrieval = time()
+            # Transform total bounds polygon of poi file to 4326 for OSM
+            polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
+            # Extract polygon in EPSG 4326 
+            wgs_polygon = polygon_gdf_wgs['geometry'].values[0]        
+            # Retrieve street network for desired network type
+            graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
+            # Project street network graph back to original poi CRS
+            graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
+            end_network_retrieval = time()
+            elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+            print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")             
 
-                # Convert km per hour to m per minute
-                meters_per_minute = travel_speed * 1000 / 60  
-
-                # Compute isochrone areas for points of interest
-                aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
-                    # Find node which is closest to point location as base for next steps
-                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                    # Create subgraph around point of interest for efficiency purposes
-                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                    # Calculate the time it takes to cover each edge's distance
+            # Compute isochrone areas for points of interest
+            aoi_geometry = []
+            for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
+                # Find node which is closest to point location as base for next steps
+                center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
+                # Create subgraph around point of interest for efficiency purposes
+                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                # Calculate the time it takes to cover each edge's distance if speed_time is True
+                if speed_time:
                     for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
                         data["time"] = data["length"] / meters_per_minute
-                    # Compute isochrones, see separate function for line by line explanation
-                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) 
-                    aoi_geometry.append(isochrone_poly)
-
-                # Create geodataframe of isochrone geometries
-                aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
-                print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")   
-            else:
-                # Make sure network file is provided either as geopackage or shapefile
-                if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-                    raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
-                elif os.path.splitext(network_file)[1] == ".gpkg":
-                    network = gpd.read_file(network_file, layer='edges')
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
                 else:
-                    network = gpd.read_file(network_file)
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Compute isochrones, see separate function for line by line explanation
+                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                aoi_geometry.append(isochrone_poly)
 
-                # Make sure network file has same CRS as poi file
-                if not network.crs.to_epsg() == epsg:
-                    print("Adjusting CRS of Network file to match with Point of Interest CRS...")
-                    network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")
-
-                # Create bounding box for network file
-                bbox_network = network.unary_union.convex_hull
-
-                # Check whether or not all geometries of poi file are within network file
-                if not all(geom.within(bbox_network) for geom in poi['geometry']):
-                    raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
-
-                aoi_gdf = gpd.GeoDataFrame(geometry=[bbox_network], crs=f'EPSG:{epsg}')            
+            # Create geodataframe of isochrone geometries
+            aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
+            print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")             
     
     ### Step 3: Calculate mean NDVI values and write results to file
     print("Calculating mean NDVI values...")
@@ -299,7 +288,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     return poi
 
 def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood",
-                              buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, 
+                              buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, 
                               write_to_file=True, save_lulc=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -326,11 +315,8 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
 
     # Make sure buffer distance and type are set in case of point geometries
     if geom_type == "Point":
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
-
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        if buffer_type not in ["euclidean", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
 
     # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
@@ -352,6 +338,34 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
 
+    # Make sure the buffer_type argument has a valid value if not None
+    if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
+        raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+
+    # If buffer type is set to euclidean, make sure that the buffer distance is set
+    if buffer_type == "euclidean":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+    
+    # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
+    if buffer_type == "network":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            else:
+                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
+                # Convert km per hour to m per minute
+                meters_per_minute = travel_speed * 1000 / 60 
+                # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
+                buffer_dist = trip_time * meters_per_minute * 1.25
+        else:
+            # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
+            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+                raise TypeError("Please make sure that one of the following requirements is met:\
+                                \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
+                                \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
+            speed_time = False
+            
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
@@ -431,95 +445,58 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
         # Buffer type == None implies that polygons in poi file serve as areas of interest
         aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
-        # Make sure buffer_type has valid value
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-
-        # Make sure buffer_dist is set in case buffer_type set to euclidian
-        if buffer_type == "euclidian":
-            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
-
-            # Create area of interest based on euclidian distance
+        # Make sure buffer_dist is set in case buffer_type set to euclidean
+        if buffer_type == "euclidean":
+            # Create area of interest based on euclidean distance
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
         else:
-            # Make sure travel speed argument is set
-            if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-            # Make sure trip time argument is set
-            if not isinstance(trip_time, int) or (not trip_time > 0):
-                raise TypeError("Please make sure that the trip time is set as a positive integer") 
+            # Make sure network_type argument has valid value
+            if network_type not in ["walk", "bike", "drive", "all"]:
+                raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
 
             # In case poi still contains polygon geometries, compute centroids so that isochrones can be created
             if geom_type == "Polygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n")  
-                     
-            if network_file is None:
-                # Make sure network_type argument has valid value
-                if network_type not in ["walk", "bike", "drive", "all"]:
-                    raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+            
+            print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+            start_network_retrieval = time()
+                # Transform bounds polygon of poi file to 4326 for OSM
+            polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326")
+            # Extract polygon in EPSG 4326    
+            wgs_polygon = polygon_gdf_wgs['geometry'].values[0]     
+            # Retrieve street network for desired network type
+            graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
+            # Project street network graph back to original poi CRS
+            graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
+            end_network_retrieval = time()
+            elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+            print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")         
 
-                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
-                start_network_retrieval = time()
-                 # Transform bounds polygon of poi file to 4326 for OSM
-                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326")
-                # Extract polygon in EPSG 4326    
-                wgs_polygon = polygon_gdf_wgs['geometry'].values[0]     
-                # Retrieve street network for desired network type
-                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
-                # Project street network graph back to original poi CRS
-                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
-                end_network_retrieval = time()
-                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")         
-
-                # Convert km per hour to m per minute
-                meters_per_minute = travel_speed * 1000 / 60  
-
-                # Compose area of interest based on isochrones
-                aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
-                    # Find node which is closest to point location as base for next steps
-                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                    # Create subgraph for efficiency purposes
-                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                    # Calculate the time it takes to cover each edge's distance
+            # Compose area of interest based on isochrones
+            aoi_geometry = []
+            for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                # Find node which is closest to point location as base for next steps
+                center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
+                # Create subgraph for efficiency purposes
+                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                # Calculate the time it takes to cover each edge's distance if speed_time is True
+                if speed_time:
                     for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
                         data["time"] = data["length"] / meters_per_minute
-                    # Compute isochrones, see separate function for line by line explanation
-                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) 
-                    aoi_geometry.append(isochrone_poly)
-
-                # Create dataframe of isochrone polygons
-                aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
-                print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")   
-            else:
-                # Make sure network file is provided either as geopackage or shapefile
-                if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-                    raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
-                elif os.path.splitext(network_file)[1] == ".gpkg":
-                    network = gpd.read_file(network_file, layer='edges')
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
                 else:
-                    network = gpd.read_file(network_file)
-                
-                # Make sure CRS of network file is same as CRS of poi file
-                if not network.crs.to_epsg() == epsg:
-                    print("Adjusting CRS of Network file to match with Point of Interest CRS...")
-                    network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Compute isochrones, see separate function for line by line explanation
+                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                aoi_geometry.append(isochrone_poly)
 
-                # Create bounding box for network file
-                bbox_network = network.unary_union.convex_hull
-
-                # Make sure all geometries of poi file are within bounds of network file provided
-                if not all(geom.within(bbox_network) for geom in poi['geometry']):
-                    raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
-
-                # Create geodataframe of areas of interest following the provided network file
-                aoi_gdf = gpd.GeoDataFrame(geometry=[bbox_network], crs=f'EPSG:{epsg}')
+            # Create dataframe of isochrone polygons
+            aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
+            print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")         
 
     ### Step 3: Perform calculations and write results to file
     print("Calculating landcover class percentages...")
@@ -554,8 +531,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     return poi
 
 def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                          buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
-                          output_dir=os.getcwd()):
+                          buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
@@ -581,11 +557,8 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
 
     # Make sure buffer distance and type are set in case of point geometries
     if geom_type == "Point":
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
-
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        if buffer_type not in ["euclidean", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
 
     # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
@@ -629,6 +602,34 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
             else:
                 print("Warning: Not all polygons of interest are completely within the area covered by the tree canopy file provided, results will be based on intersecting part of polygons involved \n")
 
+    # Make sure the buffer_type argument has a valid value if not None
+    if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
+        raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+
+    # If buffer type is set to euclidean, make sure that the buffer distance is set
+    if buffer_type == "euclidean":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+    
+    # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
+    if buffer_type == "network":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            else:
+                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
+                # Convert km per hour to m per minute
+                meters_per_minute = travel_speed * 1000 / 60 
+                # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
+                buffer_dist = trip_time * meters_per_minute * 1.25
+        else:
+            # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
+            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+                raise TypeError("Please make sure that one of the following requirements is met:\
+                                \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
+                                \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
+            speed_time = False
+    
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
@@ -640,93 +641,58 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
         # Buffer type == None implies that polygon geometries serve as areas of interest
         aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
-        # Make sure buffer type argument has valid value
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-
-        # Make sure buffer dist is set in case buffer type set to euclidian
-        if buffer_type == "euclidian":
-            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
-
-            # Create area of interest based on euclidian buffer
+        # Make sure buffer dist is set in case buffer type set to euclidean
+        if buffer_type == "euclidean":
+            # Create area of interest based on euclidean buffer
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
-        else:            
-            # Make sure travel speed argument is set
-            if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-            # Make sure trip time argument is set
-            if not isinstance(trip_time, int) or (not trip_time > 0):
-                raise TypeError("Please make sure that the trip time is set as a positive integer") 
-            
+        else:     
+            # Make sure network_type has valid value
+            if network_type not in ["walk", "bike", "drive", "all"]:
+                raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+                   
             # In case poi still contain polygon geometries, compute centroids so that isochrones can be created
             if geom_type == "Polygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrone can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n") 
-             
-            if network_file is None:
-                # Make sure network_type has valid value
-                if network_type not in ["walk", "bike", "drive", "all"]:
-                    raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
-                
-                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
-                start_network_retrieval = time()
-                # Transform bounds polygon of poi file to 4326 for OSM
-                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
-                # Extract polygon in EPSG 4326       
-                wgs_polygon = polygon_gdf_wgs['geometry'].values[0]  
-                # Retrieve street network for desired network type
-                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
-                # Project street network graph back to original poi CRS
-                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
-                end_network_retrieval = time()
-                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
+            
+            print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+            start_network_retrieval = time()
+            # Transform bounds polygon of poi file to 4326 for OSM
+            polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
+            # Extract polygon in EPSG 4326       
+            wgs_polygon = polygon_gdf_wgs['geometry'].values[0]  
+            # Retrieve street network for desired network type
+            graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
+            # Project street network graph back to original poi CRS
+            graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
+            end_network_retrieval = time()
+            elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+            print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
 
-                # Convert km per hour to m per minute    
-                meters_per_minute = travel_speed * 1000 / 60  
-
-                aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
-                    # Find node which is closest to point location as base for next steps
-                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                    # Create subgraph around poi for efficiency purposes
-                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                    # Calculate the time it takes to cover each edge's distance
+            aoi_geometry = []
+            for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                # Find node which is closest to point location as base for next steps
+                center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
+                # Create subgraph around poi for efficiency purposes
+                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                # Calculate the time it takes to cover each edge's distance if speed_time is True
+                if speed_time:
                     for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
                         data["time"] = data["length"] / meters_per_minute
-                    # Compute isochrones, see separate function for line by line explanation
-                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) 
-                    aoi_geometry.append(isochrone_poly)
-
-                # Create dataframe of isochrone polygons
-                aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
-                print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")    
-            else:
-                # Make sure network file is provided either as geopackage or shapefile
-                if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-                    raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
-                elif os.path.splitext(network_file)[1] == ".gpkg":
-                    network = gpd.read_file(network_file, layer='edges')
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
                 else:
-                    network = gpd.read_file(network_file)
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Compute isochrones, see separate function for line by line explanation
+                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                aoi_geometry.append(isochrone_poly)
 
-                # Make sure network file has same CRS as poi file
-                if not network.crs.to_epsg() == epsg:
-                    print("Adjusting CRS of Network file to match with Point of Interest CRS...")
-                    network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")  
-
-                # Create bounding box for network file
-                bbox_network = network.unary_union.convex_hull
-
-                # Make sure all geometries of poi file are within network file provided
-                if not all(geom.within(bbox_network) for geom in poi['geometry']):
-                    raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
-
-                aoi_gdf = gpd.GeoDataFrame(geometry=[bbox_network], crs=f'EPSG:{epsg}')
+            # Create dataframe of isochrone polygons
+            aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
+            print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")    
+            
 
     ### Step 3: Perform calculations and write results to file
     print("Calculating percentage of tree canopy coverage...")
@@ -754,7 +720,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     return poi
 
 def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                        buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
+                        buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
                         output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -781,11 +747,8 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
 
     # Make sure buffer distance and type are set in case of point geometries
     if geom_type == "Point":
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
-
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
+        if buffer_type not in ["euclidean", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
 
     # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
@@ -806,6 +769,34 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
+    
+    # Make sure the buffer_type argument has a valid value if not None
+    if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
+        raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+
+    # If buffer type is set to euclidean, make sure that the buffer distance is set
+    if buffer_type == "euclidean":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+    
+    # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
+    if buffer_type == "network":
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            else:
+                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
+                # Convert km per hour to m per minute
+                meters_per_minute = travel_speed * 1000 / 60 
+                # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
+                buffer_dist = trip_time * meters_per_minute * 1.25
+        else:
+            # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
+            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+                raise TypeError("Please make sure that one of the following requirements is met:\
+                                \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
+                                \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
+            speed_time = False
     
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
@@ -862,89 +853,53 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
         # Buffer type == None implies that polygon geometries serve as areas of interest
         aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
     else:
-        # Make sure buffer type has valid value
-        if buffer_type not in ["euclidian", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidian' or 'network' and re-run the function")
-
-        # Make sure buffer dist is set in case buffer type is euclidian
-        if buffer_type == "euclidian":
-            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise TypeError("Please make sure that the buffer distance is set as a positive integer")             
-
-            # Create area of interest based on euclidian buffer
+        # Make sure buffer dist is set in case buffer type is euclidean
+        if buffer_type == "euclidean":
+            # Create area of interest based on euclidean buffer
             aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
         else:
-            # Make sure travel speed is set 
-            if not isinstance(travel_speed, int) or (not travel_speed > 0):
-                raise TypeError("Please make sure that the travel speed is set as a positive integer")
-
-            # Make sure trip time is set
-            if not isinstance(trip_time, int) or (not trip_time > 0):
-                raise TypeError("Please make sure that the trip time is set as a positive integer")
-
+            # Make sure network type has valid value
+            if network_type not in ["walk", "bike", "drive", "all"]:
+                raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+            
             # If poi still contains polygon geometries, compute centroids so that isochrones can be created
             if geom_type == "Polygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n") 
             
-            if network_file is None:
-                # Make sure network type has valid value
-                if network_type not in ["walk", "bike", "drive", "all"]:
-                    raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+            print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
+            start_network_retrieval = time()       
+            # Retrieve street network for desired network type
+            graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
+            # Project street network graph back to original poi CRS
+            graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
+            end_network_retrieval = time()
+            elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+            print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
                 
-                print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by buffer distance as specified...")
-                start_network_retrieval = time()       
-                # Retrieve street network for desired network type
-                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
-                # Project street network graph back to original poi CRS
-                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
-                end_network_retrieval = time()
-                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")
-                    
-                # Convert km per hour to m per minute
-                meters_per_minute = travel_speed * 1000 / 60  
-
-                aoi_geometry = []
-                for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
-                    # Find node which is closest to point location as base for next steps
-                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                    # Create subgraph around poi for efficiency purposes
-                    buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                    # Calculate the time it takes to cover each edge's distance
+            aoi_geometry = []
+            for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
+                # Find node which is closest to point location as base for next steps
+                center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
+                # Create subgraph around poi for efficiency purposes
+                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
+                # Calculate the time it takes to cover each edge's distance if speed_time is True
+                if speed_time:
                     for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
                         data["time"] = data["length"] / meters_per_minute
-                    # Compute isochrones, see separate function for line by line explanation
-                    isochrone_poly = make_iso_poly(buffer_graph, center_node=center_node, trip_time=trip_time) 
-                    aoi_geometry.append(isochrone_poly)
-
-                # Create dataframe with isochrone geometries
-                aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
-                print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")  
-            else:
-                # Make sure network file is either provided as geopackage or shapefile
-                if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-                    raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
-                elif os.path.splitext(network_file)[1] == ".gpkg":
-                    network = gpd.read_file(network_file, layer='edges')
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
                 else:
-                    network = gpd.read_file(network_file)
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Compute isochrones, see separate function for line by line explanation
+                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                aoi_geometry.append(isochrone_poly)
 
-                # Make sure CRS of network file matches CRS of poi file
-                if not network.crs.to_epsg() == epsg:
-                    print("Adjusting CRS of Network file to match with Point of Interest CRS...")
-                    network.to_crs(f'EPSG:{epsg}', inplace=True)
-                    print("Done \n")  
-
-                # Create bounding box for network file
-                bbox_network = network.unary_union.convex_hull
-
-                # Make sure all poi geometries are within network file provided
-                if not all(geom.within(bbox_network) for geom in poi['geometry']):
-                    raise ValueError("Not all points of interest are within the network file provided, please make sure they are and re-run the function")
-
-                aoi_gdf = gpd.GeoDataFrame(geometry=[bbox_network], crs=f'EPSG:{epsg}')
+            # Create dataframe with isochrone geometries
+            aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
+            print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")  
 
     ### Step 4: Perform calculations and write results to file
     print("Calculating percentage of park area coverage...")
@@ -973,10 +928,8 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
 
 ##### SUPPORTING FUNCTIONS
 # Function to create isochrone polygon of network
-def make_iso_poly(G, edge_buff=25, node_buff=0, center_node=None, trip_time=None):
+def make_iso_poly(buffer_graph, subgraph, edge_buff=25, node_buff=0):
     #Note: based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb
-    subgraph = nx.ego_graph(G, center_node, radius=trip_time, distance="time") # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-
     node_points = [sg.Point((data["x"], data["y"])) for node, data in subgraph.nodes(data=True)] # Create list of point geometries existing of x and y coordinates for each node in subgraph retrieved from previous step
     nodes_gdf = gpd.GeoDataFrame({"id": list(subgraph.nodes)}, geometry=node_points) # Create geodataframe containing data from previous step
     nodes_gdf = nodes_gdf.set_index("id") # Set index to node ID
@@ -985,7 +938,7 @@ def make_iso_poly(G, edge_buff=25, node_buff=0, center_node=None, trip_time=None
     for n_fr, n_to in subgraph.edges(): # Iterate over edges in subgraph
         f = nodes_gdf.loc[n_fr].geometry # Retrieve geometry of the 'from' node of the edge
         t = nodes_gdf.loc[n_to].geometry # Retrieve geometry of the 'to' node of the edge
-        edge_lookup = G.get_edge_data(n_fr, n_to)[0].get("geometry", sg.LineString([f, t])) # Retrieve edge geometry between from and to nodes
+        edge_lookup = buffer_graph.get_edge_data(n_fr, n_to)[0].get("geometry", sg.LineString([f, t])) # Retrieve edge geometry between from and to nodes
         edge_lines.append(edge_lookup) # Append edge geometry to list of edge lines
 
     n = nodes_gdf.buffer(node_buff).geometry # Create buffer around the nodes
