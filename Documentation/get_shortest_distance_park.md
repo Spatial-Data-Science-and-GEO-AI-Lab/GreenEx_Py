@@ -1,4 +1,4 @@
-**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_file=None, network_type=None, write_to_file=True, output_dir=os.getcwd())**
+**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, write_to_file=True, output_dir=os.getcwd())**
 
 > Assess whether or not parks are located within a threshold network distance for points of interest.
 
@@ -18,9 +18,7 @@
 
 >> - destination *(string {"centroids", "entrance"})* – the destination points for the parks. If "entrance", network distances will be computed between the point location's nearest network node and the network nodes that are within 20 meters of the park boundaries - therefore considered as (fake) entry points. Euclidian distance between point location and nearest network node will be added. If "centroids", the same procedure applies while also taking into account the euclidian distance between the park's centroid and fake entry points.
 
->> - network_file *(string)* – optional, the absolute or relative path to the file containing the network (transportation infrastructure) to consider. If not specified, network will be retrieved from OpenStreetMap.
-
->> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case network_file is not provided, the travel mode for which network needs to be retrieved from OpenStreetMap.
+>> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
 
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 

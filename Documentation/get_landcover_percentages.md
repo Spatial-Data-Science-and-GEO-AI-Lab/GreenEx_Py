@@ -1,4 +1,4 @@
-**get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_file=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, save_lulc=True, output_dir=os.getcwd())**
+**get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, save_lulc=True, output_dir=os.getcwd())**
 
 > Retrieve the percentage of area covered by each landcover class for areas or points of interest.
 
@@ -16,15 +16,13 @@
 
 >> - buffer_type *(string {"euclidian", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the area of interest should be composed. If "euclidian", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isoschrone maps will be composed based on the additional arguments of trip_time and travel_speed.
 
->> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidian" OR "network" while no network is provided. In case buffer_type is "euclidian", the buffer distance is used to define the area, surrounding the point(s)/polygon(s) of interest, for which the landcover class percentages should be calculated. In case buffer_type is "network", the buffer distance will be used for extracting data from planetary computer and OpenStreetMap if the landcover raster and network are not provided respectively whereas the area of interest for which to perform the landcover class calculation will then be defined based on isochrones, following the trip_time and travel_mode arguments.
+>> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidian" and optional if buffer_type is set to "network". The distance in meters that will be used to compute the area of interest surrounding the geometries of the point_of_interest file. NOTE: In case buffer_type is set to "network", buffer_dist should not be specified if travel_speed and trip_time arguments are specified.
 
->> - network_file *(string)* – optional, may be defined in case buffer_type is set to "network", the absolute or relative path to the file containing the network (transportation infrastructure) to consider. If not specified while buffer_type is set to "network", network will be retrieved through OpenStreetMap.
+>> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
 
->> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network" and no network file is provided, the travel mode for which the network needs to be retrieved.
+>> - trip_time *(int)* – may optionally be defined in case buffer_type is set to "network", trip time in minutes to consider for travel mode specified in network_type. The trip_time, in addition to the travel_speed, will be used to compose an isochrone map if no buffer distance is provided. NOTE: travel_speed and trip_time arguments should not be specified if buffer_dist is specified.
 
->> - trip_time *(int)* – to be defined in case buffer_type is set to "network", trip time in minutes to consider for travel mode specified in network_type. The trip_time, as well as the travel_speed, will be used to compose an isochrone map.
-
->> - travel_speed *(int)* – to be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type. The travel_speed, as well as the trip_time, will be used to compose an isochrone map.
+>> - travel_speed *(int)* – may optionally be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type. The travel_speed, in addition to the trip_time, will be used to compose an isochrone map if no buffer distance is provided. NOTE: travel_speed and trip_time arguments should not be specified if buffer_dist is specified.
 
 >> - write_to_file *(bool {"TRUE", "FALSE"})* - whether or not to write the results to a new file in the directory specified in the output_dir argument. By default, results will be written to file.
 
