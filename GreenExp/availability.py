@@ -823,6 +823,10 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
         park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
         # Change CRS to the same one as poi file
         park_src.to_crs(f"EPSG:{epsg}", inplace=True)
+        # Create a boolean mask to filter out polygons and multipolygons
+        polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
+        # Filter the GeoDataFrame to keep only polygons and multipolygons
+        park_src = park_src.loc[polygon_mask]
         end_park_retrieval = time()
         elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
