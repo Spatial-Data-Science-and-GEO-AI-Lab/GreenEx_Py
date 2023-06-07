@@ -119,7 +119,7 @@ Calculating landcover class percentages...
 Done, running time: 0:00:00.835802 
 
 # Function output
-    id	geometry                        0           Tree cover  Grassland   Built-up    Bare / sparse vegetation
+    id	    geometry                        0           Tree cover  Grassland   Built-up    Bare / sparse vegetation
 0	1	POINT (388644.249 392861.634)	21.872%	    24.885%	    7.215%	    46.024%	    0.004%
 1	2	POINT (385981.911 393805.494)	21.369%	    24.38%	    5.704%	    48.547%	    NaN
 2	3	POINT (388631.230 395322.181)	21.872%	    20.881%	    13.824%	    43.415%	    0.009%
