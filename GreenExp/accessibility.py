@@ -8,10 +8,8 @@ import os
 # Geospatial data processing and analysis
 import geopandas as gpd
 import osmnx as ox
-import rioxarray
 import shapely.geometry as sg
 import networkx as nx
-import momepy
 from scipy.spatial import cKDTree
 
 # Date and time manipulation
@@ -199,24 +197,30 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         # Calculate the euclidean distance between the house location and the nearest fake park entry point/park centroid
         poi_coords = (df_row['geometry'].x, df_row['geometry'].y)
         if destination == "centroids": 
-            centroid_coordinates = [(geom.x, geom.y) for geom in park_src_buffer['centroid']]
-            kd_tree = cKDTree(centroid_coordinates)
-            min_distance, _ = kd_tree.query(poi_coords)
-            min_distance = round(min_distance,0)
+            try:
+                centroid_coordinates = [(geom.x, geom.y) for geom in park_src_buffer['centroid']]
+                kd_tree = cKDTree(centroid_coordinates)
+                min_distance, _ = kd_tree.query(poi_coords)
+                min_distance = round(min_distance,0)
+            except:
+                min_distance = np.nan
         else:
-            nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
-            subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
-            pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
-            
-            park_boundary_nodes = {}
-            for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
-                boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
-                park_boundary_nodes[park_id] = boundary_nodes
+            try:
+                nearest_node = ox.distance.nearest_nodes(network_graph, df_row['geometry'].x, df_row['geometry'].y)
+                subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
+                pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
+                
+                park_boundary_nodes = {}
+                for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
+                    boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
+                    park_boundary_nodes[park_id] = boundary_nodes
 
-            entrance_points = [pos[node] for node_lists in park_boundary_nodes.values() for node in node_lists]
-            kd_tree = cKDTree(entrance_points)
-            min_distance, _ = kd_tree.query(poi_coords)
-            min_distance = round(min_distance,0)
+                entrance_points = [pos[node] for node_lists in park_boundary_nodes.values() for node in node_lists]
+                kd_tree = cKDTree(entrance_points)
+                min_distance, _ = kd_tree.query(poi_coords)
+                min_distance = round(min_distance,0)
+            except:
+                min_distance = np.nan
     
     ### Step 6: Define result, if minimum distance smaller than/equal to target distance threshold --> Good
     if min_distance <= target_dist:
