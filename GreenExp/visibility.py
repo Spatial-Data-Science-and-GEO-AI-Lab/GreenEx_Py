@@ -239,7 +239,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         print(f"Retrieving network within total bounds of {geom_type}(s) of interest, extended by the buffer_dist in case provided...")
         start_network_retrieval = time()
         # Extract network from OpenStreetMap
-        network_graph = ox.graph_from_polygon(wgs_polygon, network_type='all')
+        network_graph = ox.graph_from_polygon(wgs_polygon, network_type='all', retain_all=True)
         # Project network to original poi file CRS
         graph_projected = ox.project_graph(network_graph, to_crs=f"EPSG:{epsg}")
         # Save network edges in dataframe
@@ -575,7 +575,7 @@ def get_network_sample_points(df_row, network_edges, buffer_dist, sample_dist):
 
 def get_road_network_with_points(poi_polygon, epsg):
     # Get the road network within the poi polygon
-    G = ox.graph_from_polygon(poi_polygon, network_type='drive', simplify=True)
+    G = ox.graph_from_polygon(poi_polygon, network_type='drive', simplify=True, retain_all=True)
 
     # Create a set to store unique road identifiers
     unique_roads = set()
