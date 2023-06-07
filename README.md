@@ -119,7 +119,7 @@ Calculating landcover class percentages...
 Done, running time: 0:00:00.835802 
 
 # Function output
-        id	    geometry                        0           Tree cover  Grassland   Built-up    Bare / sparse vegetation
+    id  geometry    0   Tree cover  Grassland   Built-up    Bare / sparse vegetation
 0	1	POINT (388644.249 392861.634)	21.872%	    24.885%	    7.215%	    46.024%	    0.004%
 1	2	POINT (385981.911 393805.494)	21.369%	    24.38%	    5.704%	    48.547%	    NaN
 2	3	POINT (388631.230 395322.181)	21.872%	    20.881%	    13.824%	    43.415%	    0.009%
@@ -232,7 +232,7 @@ Calculating shortest distances...
 Done, running time: 0:00:01.477179 
 
 # Function output
-        id  geometry                        park_within_500m    distance_to_park
+    id  geometry    park_within_500m    distance_to_park
 0	1	POINT (388644.249 392861.634)	True	            236.0
 1	2	POINT (385981.911 393805.494)	True	            122.0
 2	3	POINT (388631.230 395322.181)	True	            175.0
@@ -280,13 +280,13 @@ source: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-Nature
 
 # Function output
 # PoI file including results
-        id  geometry                        GVI         nr_of_points
+    id  geometry    GVI     nr_of_points
 0	1	POINT (388644.249 392861.634)	NaN	        0
 1	2	POINT (385981.911 393805.494)	0.260314	16
 2	3	POINT (388631.230 395322.181)	NaN	        0
 
 # Additional dataframe containing information on how results were obtained
-        id  geometry                        GVI     is_panoramic    missing
+    id  geometry    GVI     is_panoramic    missing
 0	1	POINT (388498.170 392886.953)	NaN	    None	        True
 1	1	POINT (388496.875 392836.970)	NaN	    None	        True
 2	1	POINT (388542.543 392753.184)	NaN	    None	        True
@@ -343,13 +343,13 @@ source: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py
 
 # Function output
 # PoI file including results
-        id  geometry                        GVI     nr_of_points
+    id  geometry    GVI     nr_of_points
 0	1	POINT (388644.249 392861.634)	0.532	12
 1	2	POINT (385981.911 393805.494)	0.118	60
 2	3	POINT (388631.230 395322.181)	0.362	46
 
 # Additional dataframe containing information on how results were obtained
-        id  geometry                        GVI
+    id  geometry    GVI
 0	1	POINT (388564.100 392907.269)	0.582617
 1	1	POINT (388579.827 392895.998)	0.52047
 2	1	POINT (388661.088 392846.149)	0.509614
