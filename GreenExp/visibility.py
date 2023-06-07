@@ -380,6 +380,9 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     road_points = select_points_on_road_network(network_edges)
     # Filter points to maintain the ones that are within the buffers of the poi geometries
     buffer_points = select_points_within_buffers(poi, road_points)
+    # Check if any road sample points are found within specified buffer distance
+    if len(buffer_points) == 0:
+        raise ValueError("No road locations could be retrieved within the buffer distance set, please increase the buffer distance and re-run the function")
     end_sample_points = time()
     elapsed_sample_points = end_sample_points - start_sample_points
     print(f"Done, running time: {str(timedelta(seconds=elapsed_sample_points))} \n")
@@ -388,7 +391,6 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     start_images = time()
     # Retrieve features, images, from Mapillary for the road locations
     features = get_features_on_points(buffer_points, access_token, epsg)
-    #gvi_per_point = download_images_for_points(features, access_token, epsg)
     # Process the features and calculate GVI score for road locations
     gvi_per_point = download_images_for_points(features, access_token, epsg)
     end_images = time()
