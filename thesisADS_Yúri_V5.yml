@@ -1,4 +1,4 @@
-name: ADSthesis
+name: Greenex_py
 channels:
   - pytorch
   - conda-forge
@@ -264,4 +264,4 @@ dependencies:
     - tokenizers==0.13.3
     - transformers==4.29.2
     - vt2geojson==0.2.1
-prefix: C:\Users\ygrin\anaconda3\envs\ADSthesis
+prefix: C:\Users\ygrin\anaconda3\envs\Greenex_py
