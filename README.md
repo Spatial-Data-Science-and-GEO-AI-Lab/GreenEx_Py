@@ -33,13 +33,15 @@ import geopandas as gpd
 # Path to data
 path = "C:/Users/ygrin/Documents/Studie - MSc ADS/Utrecht University/Block 4 - Thesis/TestData/"
 example_data = gpd.read_file(path + "Test_multiple_home_locations.gpkg")
-
-# Resulting geodataframe with example data looks as follows
-	id	geometry
-0	1	POINT (388644.249 392861.634)
-1	2	POINT (385981.911 393805.494)
-2	3	POINT (388631.230 395322.181)
 ```
+Resulting geodataframe with example data looks as follows;
+
+|   | id | geometry                      |
+|---|----|-------------------------------|
+| 0 | 1  | POINT (388644.249 392861.634) |
+| 1 | 2  | POINT (385981.911 393805.494) |
+| 2 | 3  | POINT (388631.230 395322.181) |
+
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
 <br><br>
@@ -85,13 +87,16 @@ Done, running time: 0:00:08.906117
 
 Calculating mean NDVI values...
 Done, running time: 0:00:00.256659
-
-# Function output
-	id	geometry                        mean_NDVI
-0	1	POINT (388644.249 392861.634)	0.260
-1	2	POINT (385981.911 393805.494)	0.218
-2	3	POINT (388631.230 395322.181)	0.283
 ```
+
+Function output; 
+
+|   | id | geometry                      | mean_NDVI |
+|---|----|-------------------------------|-----------|
+| 0 | 1  | POINT (388644.249 392861.634) | 0.260     |
+| 1 | 2  | POINT (385981.911 393805.494) | 0.218     |
+| 2 | 3  | POINT (388631.230 395322.181) | 0.283     |
+
 ### **get_landcover_percentages**
 This function calculates the percentage of area that is covered by each landcover class for an area of interest. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
 
@@ -117,13 +122,15 @@ Done, running time: 0:00:06.839267
 
 Calculating landcover class percentages...
 Done, running time: 0:00:00.835802 
-
-# Function output
-    id  geometry    0   Tree cover  Grassland   Built-up    Bare / sparse vegetation
-0	1	POINT (388644.249 392861.634)	21.872%	    24.885%	    7.215%	    46.024%	    0.004%
-1	2	POINT (385981.911 393805.494)	21.369%	    24.38%	    5.704%	    48.547%	    NaN
-2	3	POINT (388631.230 395322.181)	21.872%	    20.881%	    13.824%	    43.415%	    0.009%
 ```
+
+Function output;
+
+|   | id | geometry                      | 0       | Tree cover | Grassland | Built-up | Bare / sparse vegetation |
+|---|----|-------------------------------|---------|------------|-----------|----------|--------------------------|
+| 0 | 1  | POINT (388644.249 392861.634) | 21.872% | 24.885%    | 7.215%    | 46.024%  | 0.004%                   |
+| 1 | 2  | POINT (385981.911 393805.494) | 21.369% | 24.38%     | 5.704%    | 48.547%  | NaN                      |
+| 2 | 3  | POINT (388631.230 395322.181) | 21.872% | 20.881%    | 13.824%   | 43.415%  | 0.009%                   |
 
 ### **get_canopy_percentage**
 This function calculates the percentage of area that is covered by tree canopy. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). Also, a tree canopy vector file should be provided which solely contains polygon or multipolygon geometries since areas cannot be calculated from point geometries.
@@ -144,11 +151,14 @@ availability.get_canopy_percentage(point_of_interest_file=path+"Test_single_home
 # Information provided while function was running
 Calculating percentage of tree canopy coverage...
 Done, running time: 0:00:00.181916 
-
-# Function output
-	id	geometry                        canopy_cover
-0	1	POINT (387164.991 394443.414)	23.66%
 ```
+
+Function output;
+
+|   | id | geometry                      | canopy_cover |
+|---|----|-------------------------------|--------------|
+| 0 | 1  | POINT (387164.991 394443.414) | 23.66%       |
+
 ### **get_park_percentage**
 This function calculates the percentage of area that is covered by parks. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). 
 
@@ -185,13 +195,16 @@ Note: creation of isochrones based on code by gboeing, source: https://github.co
 
 Calculating percentage of park area coverage...
 Done, running time: 0:00:00.140806 
-
-# Function output
-	id	geometry                        park_cover
-0	1	POINT (388644.249 392861.634)	12.94%
-1	2	POINT (385981.911 393805.494)	7.1%
-2	3	POINT (388631.230 395322.181)	12.89%
 ```
+
+Function output;
+
+|   | id | geometry                      | park_cover |
+|---|----|-------------------------------|------------|
+| 0 | 1  | POINT (388644.249 392861.634) | 12.94%     |
+| 1 | 2  | POINT (385981.911 393805.494) | 7.1%       |
+| 2 | 3  | POINT (388631.230 395322.181) | 12.89%     |
+
 ## *Accessibility*
 Greenspace accessibility is currently measured using one function; [get_shortest_distance_park](#get_shortest_distance_park). 
 <br><br>
@@ -230,13 +243,15 @@ Done, running time: 0:00:19.599954
 
 Calculating shortest distances...
 Done, running time: 0:00:01.477179 
-
-# Function output
-    id  geometry    park_within_500m    distance_to_park
-0	1	POINT (388644.249 392861.634)	True	            236.0
-1	2	POINT (385981.911 393805.494)	True	            122.0
-2	3	POINT (388631.230 395322.181)	True	            175.0
 ```
+
+Function output;
+
+|   | id | geometry                      | park_within_500m | distance_to_park |
+|---|----|-------------------------------|------------------|------------------|
+| 0 | 1  | POINT (388644.249 392861.634) | True             | 236.0            |
+| 1 | 2  | POINT (385981.911 393805.494) | True             | 122.0            |
+| 2 | 3  | POINT (388631.230 395322.181) | True             | 175.0            |
 
 The function returns a boolean value indicating whether at least one park is within the target distance. Additionally, it provides the distance in meters if applicable. 
 
@@ -264,7 +279,7 @@ visibility.get_streetview_GVI(point_of_interest_file=test_path+"Test_multiple_ho
 Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in case provided...
 Done, running time: 0:00:06.198980 
 
-Computing sample points for roads within area of interest's network...
+Computing sample points for roads within area of interest network...
 Done, running time: 0:00:00.354813 
 
 Downloading StreetView images for road sample points...
@@ -277,28 +292,32 @@ Done, running time: 0:00:00.227429
 
 Note: workflow for calculating Streetview GVI based on code by Ilse A. Vázquez Sánchez 
 source: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility 
-
-# Function output
-# PoI file including results
-    id  geometry    GVI     nr_of_points
-0	1	POINT (388644.249 392861.634)	NaN	        0
-1	2	POINT (385981.911 393805.494)	0.260314	16
-2	3	POINT (388631.230 395322.181)	NaN	        0
-
-# Additional dataframe containing information on how results were obtained
-    id  geometry    GVI     is_panoramic    missing
-0	1	POINT (388498.170 392886.953)	NaN	    None	        True
-1	1	POINT (388496.875 392836.970)	NaN	    None	        True
-2	1	POINT (388542.543 392753.184)	NaN	    None	        True
-3	1	POINT (388523.316 392902.478)	NaN	    None	        True
-4	1	POINT (388651.185 392990.046)	NaN	    None	        True
-                        ...	...	...	...	...	...
-71	3	POINT (388766.236 395335.800)	NaN	    None	        True
-72	3	POINT (388743.218 395252.725)	NaN	    None	        True
-73	3	POINT (388735.292 395302.093)	NaN	    None	        True
-74	3	POINT (388575.755 395218.208)	NaN	    None	        True
-75	3	POINT (388643.730 395392.113)	NaN	    None	        True
 ``` 
+
+Function output (pt.1);
+
+|   | id | geometry                      | GVI      | nr_of_points |
+|---|----|-------------------------------|----------|--------------|
+| 0 | 1  | POINT (388644.249 392861.634) | NaN      | 0            |
+| 1 | 2  | POINT (385981.911 393805.494) | 0.260314 | 16           |
+| 2 | 3  | POINT (388631.230 395322.181) | NaN      | 0            |
+
+
+Function output (pt.2);
+
+|     | id  | geometry                      | GVI | is_panoramic | missing |
+|-----|-----|-------------------------------|-----|--------------|---------|
+| 0   | 1   | POINT (388498.170 392886.953) | NaN | None         | True    |
+| 1   | 1   | POINT (388496.875 392836.970) | NaN | None         | True    |
+| 2   | 1   | POINT (388542.543 392753.184) | NaN | None         | True    |
+| 3   | 1   | POINT (388523.316 392902.478) | NaN | None         | True    |
+| 4   | 1   | POINT (388651.185 392990.046) | NaN | None         | True    |
+| ... | ... | ...                           | ... | ...          | ...     |
+| 71  | 3   | POINT (388766.236 395335.800) | NaN | None         | True    |
+| 72  | 3   | POINT (388743.218 395252.725) | NaN | None         | True    |
+| 73  | 3   | POINT (388735.292 395302.093) | NaN | None         | True    |
+| 74  | 3   | POINT (388575.755 395218.208) | NaN | None         | True    |
+| 75  | 3   | POINT (388643.730 395392.113) | NaN | None         | True    |
 
 The function returns the average GVI value as well as the number of sample road locations upon which this value was based. As is evident, the function highly depends on the availability of streetview images as no scores could be calculated for the first and third calculation. This can be confirmed by inspecting the second dataframe that is returned by the function; this dataframe includes each sample road location that was computed and its corresponding image's information. If missing is equal to True, no image could be found within 100 meters of the sample road location. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
@@ -330,7 +349,7 @@ visibility.get_viewshed_GVI(point_of_interest_file=path+"Test_multiple_home_loca
 Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in case provided...
 Done, running time: 0:00:15.295298 
 
-Computing sample points for roads within area of interest's network...
+Computing sample points for roads within area of interest network...
 Note: creation of sample points based on code by Ondrej Mlynarcik 
 source: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb
 Done, running time: 0:00:00.138457 
@@ -340,28 +359,31 @@ Calculating GVI for Point 2: 100%|██████████| 60/60 [00:05<0
 Calculating GVI for Point 3: 100%|██████████| 46/46 [00:04<00:00,  9.47it/s]
 Note: calculation of Viewshed GVI based on code by Johnny Huck and Labib Labib 
 source: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py  
-
-# Function output
-# PoI file including results
-    id  geometry    GVI     nr_of_points
-0	1	POINT (388644.249 392861.634)	0.532	12
-1	2	POINT (385981.911 393805.494)	0.118	60
-2	3	POINT (388631.230 395322.181)	0.362	46
-
-# Additional dataframe containing information on how results were obtained
-    id  geometry    GVI
-0	1	POINT (388564.100 392907.269)	0.582617
-1	1	POINT (388579.827 392895.998)	0.52047
-2	1	POINT (388661.088 392846.149)	0.509614
-3	1	POINT (388564.100 392907.269)	0.582617
-4	1	POINT (388661.088 392846.149)	0.509614
-                ...	...	...	...
-113	3	POINT (388729.860 395335.932)	0.338168
-114	3	POINT (388743.218 395252.725)	0.311971
-115	3	POINT (388644.604 395385.631)	0.414666
-116	3	POINT (388626.529 395386.291)	0.435242
-117	3	POINT (388626.529 395386.291)	0.435242
 ```
+
+Function output (pt.1);
+
+|   | id | geometry                      | GVI   | nr_of_points |
+|---|----|-------------------------------|-------|--------------|
+| 0 | 1  | POINT (388644.249 392861.634) | 0.532 | 12           |
+| 1 | 2  | POINT (385981.911 393805.494) | 0.118 | 60           |
+| 2 | 3  | POINT (388631.230 395322.181) | 0.362 | 46           |
+
+Function output (pt.2);
+
+|     | id  | geometry                      | GVI      |
+|-----|-----|-------------------------------|----------|
+| 0   | 1   | POINT (388564.100 392907.269) | 0.582617 |
+| 1   | 1   | POINT (388579.827 392895.998) | 0.52047  |
+| 2   | 1   | POINT (388661.088 392846.149) | 0.509614 |
+| 3   | 1   | POINT (388564.100 392907.269) | 0.582617 |
+| 4   | 1   | POINT (388661.088 392846.149) | 0.509614 |
+| ... | ... | ...                           | ...      |
+| 113 | 3   | POINT (388729.860 395335.932) | 0.338168 |
+| 114 | 3   | POINT (388743.218 395252.725) | 0.311971 |
+| 115 | 3   | POINT (388644.604 395385.631) | 0.414666 |
+| 116 | 3   | POINT (388626.529 395386.291) | 0.435242 |
+| 117 | 3   | POINT (388626.529 395386.291) | 0.435242 |
 
 The function returns the average GVI value as well as the number of sample road locations upon which this value was based. To get a better idea of how the average GVI values were calculated, an additional dataframe is returned by the function. This dataframe contains all the sample road locations and their corresponding GVI values. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
