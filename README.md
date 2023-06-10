@@ -17,6 +17,7 @@
 - [Sources](#Sources)
 
 # Installation
+To install the python module on your local computer, please refer to the instruction manuals for [Windows](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Windows_install.md) and [Mac](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Mac_install.md). 
 
 # Functionalities
 This python module models greenspace exposure from three perspectives; availability, accessibility and visibility.
