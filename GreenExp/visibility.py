@@ -44,7 +44,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import threading
 
 # Progress Tracking
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 ##### MAIN FUNCTIONS
 def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_file, dsm_raster_file, network_file=None, crs_epsg=None, 

@@ -27,7 +27,7 @@ from datetime import datetime, timedelta
 from time import time
 
 # Progress tracking
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 # Images
 from PIL import Image
@@ -266,11 +266,16 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     ### Step 3: Calculate mean NDVI values and write results to file
     print("Calculating mean NDVI values...")
     start_calc = time()
+
+    # Check whether areas of interest were succesfully created for all PoIs
+    if not all(geom is not None for geom in aoi_gdf['geometry']):
+        print(f"Warning: Buffer zones could not be created for all {geom_type}s of Interest based on the current argument values, resulting in missing values for the mean NDVI")
     # Check whether areas of interest, created in previous steps, are fully covered by the ndvi raster, provide warning if not
-    if not all(geom.within(sg.box(*ndvi_src.rio.bounds())) for geom in aoi_gdf['geometry']):
+    if not all(geom.within(sg.box(*ndvi_src.rio.bounds())) for geom in aoi_gdf['geometry'] if geom is not None):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the NDVI raster, note that results will be based on the intersecting part of the buffer zone")
+
     # Calculate mean ndvi for geometries in poi file
-    poi['mean_NDVI'] = aoi_gdf.apply(lambda row: ndvi_src.rio.clip([row.geometry]).clip(min=0).mean().values.round(3), axis=1)
+    poi['mean_NDVI'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else ndvi_src.rio.clip([row.geometry]).clip(min=0).mean().values.round(3), axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -291,7 +296,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
                               buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, 
                               write_to_file=True, save_lulc=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    poi = gpd.read_file(point_of_interest_file).head(50)
     # Make sure that geometries in poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
@@ -501,8 +506,11 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     ### Step 3: Perform calculations and write results to file
     print("Calculating landcover class percentages...")
     start_calc = time()
-    # Check if areas of interest, resulting from previous steps, are fully covered by landcover raster, provide warning if not
-    if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in aoi_gdf['geometry']):
+    # Check whether areas of interest were succesfully created for all PoIs
+    if not all(geom is not None for geom in aoi_gdf['geometry']):
+        print(f"Warning: Buffer zones could not be created for all {geom_type}s of Interest based on the current argument values, resulting in missing values for the landcover class percentages")
+    # Check whether areas of interest, created in previous steps, are fully covered by the landcover raster, provide warning if not
+    if not all(geom.within(sg.box(*landcover_src.rio.bounds())) for geom in aoi_gdf['geometry'] if geom is not None):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the landcover raster, note that results will be based on the intersecting part of the buffer zone")
        
     # apply the landcover percentage function to each geometry in the GeoDataFrame and create a new Pandas Series
@@ -697,12 +705,15 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     ### Step 3: Perform calculations and write results to file
     print("Calculating percentage of tree canopy coverage...")
     start_calc = time()
-    # Check whether areas of interest, resulting from previous steps, are fully covered by tree canopy file, provide warning if not
-    if not all(geom.within(sg.box(*canopy_src.total_bounds)) for geom in aoi_gdf['geometry']):
+    # Check whether areas of interest were succesfully created for all PoIs
+    if not all(geom is not None for geom in aoi_gdf['geometry']):
+        print(f"Warning: Buffer zones could not be created for all {geom_type}s of Interest based on the current argument values, resulting in missing values for the canopy cover")
+    # Check whether areas of interest, created in previous steps, are fully covered by the tree canopy file, provide warning if not
+    if not all(geom.within(sg.box(*canopy_src.total_bounds)) for geom in aoi_gdf['geometry'] if geom is not None):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the tree canopy file, note that results will be based on the intersecting part of the buffer zone")
 
     # Calculate percentage of tree canopy cover   
-    poi['canopy_cover'] = aoi_gdf.apply(lambda row: str(((canopy_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
+    poi['canopy_cover'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else str(((canopy_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -908,12 +919,15 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     ### Step 4: Perform calculations and write results to file
     print("Calculating percentage of park area coverage...")
     start_calc = time()
-    # Check whether areas of interest, resulting from previous steps, are fully covered by park file, provide warning if not
-    if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in aoi_gdf['geometry']):
+    # Check whether areas of interest were succesfully created for all PoIs
+    if not all(geom is not None for geom in aoi_gdf['geometry']):
+        print(f"Warning: Buffer zones could not be created for all {geom_type}s of Interest based on the current argument values, resulting in missing values for the mean NDVI")
+    # Check whether areas of interest, created in previous steps, are fully covered by the park bounds, provide warning if not
+    if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in aoi_gdf['geometry'] if geom is not None):
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the park file, note that results will be based on the intersecting part of the buffer zone")
 
     # Calculate percentage of park area cover   
-    poi['park_cover'] = aoi_gdf.apply(lambda row: str(((park_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
+    poi['park_cover'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else str(((park_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -948,14 +962,21 @@ def make_iso_poly(buffer_graph, subgraph, edge_buff=25, node_buff=0):
     n = nodes_gdf.buffer(node_buff).geometry # Create buffer around the nodes
     e = gpd.GeoSeries(edge_lines).buffer(edge_buff).geometry # Create buffer around the edges
     all_gs = list(n) + list(e) # Concatenate nodes and edges
-    isochrone_poly = gpd.GeoSeries(all_gs).unary_union # Create polygon of the concatenated nodes and edges
-
-    isochrone_poly = sg.Polygon(isochrone_poly.exterior) # try to fill in surrounded areas so shapes will appear solid and blocks without white space inside them
     
+    try:
+        isochrone_poly = gpd.GeoSeries(all_gs).unary_union # Create polygon of the concatenated nodes and edges
+        isochrone_poly = sg.Polygon(isochrone_poly.exterior) # try to fill in surrounded areas so shapes will appear solid and blocks without white space inside them
+    except:
+        isochrone_poly = None
+
     return isochrone_poly
 
 # Function to calculate land cover percentages for a single geometry
 def calculate_landcover_percentages(landcover_src, geometry):
+    if geometry is None:
+        percentages = {}
+        return percentages
+    
     # Clip landcover raster to area of interest
     clipped = landcover_src.rio.clip([geometry]).clip(min=0) 
     # Count the occurrences of all unique raster values
@@ -964,4 +985,5 @@ def calculate_landcover_percentages(landcover_src, geometry):
     total = counts.sum() 
     # Calculate percentages for each class
     percentages = {value: str((count / total * 100).round(3)) + "%" for value, count in zip(unique, counts)} 
+    
     return percentages
