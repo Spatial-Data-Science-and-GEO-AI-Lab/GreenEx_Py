@@ -1,4 +1,4 @@
-**get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, write_to_file=True, save_ndvi=True, output_dir=os.getcwd())**
+**get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, plot_aoi=True, write_to_file=True, save_ndvi=True, output_dir=os.getcwd())**
 
 > Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas or points of interest.
 
@@ -25,6 +25,8 @@
 >> - travel_speed *(int)* – may optionally be defined in case buffer_type is set to "network", travel speed in km/h to consider for travel mode specified in network_type. The travel_speed, in addition to the trip_time, will be used to compose an isochrone map if no buffer distance is provided. NOTE: travel_speed and trip_time arguments should not be specified if buffer_dist is specified.
 
 >> - year *(int)* – optional, may be defined if no ndvi raster file is provided. The year for which to retrieve satellite images using the planetary computer. If not specified while raster file is not provided, the current year will be used by default.
+
+>> - plot_aoi *(bool {"TRUE", "FALSE"})* - whether or not to plot the areas of interest that have been used for the mean NDVI calculation. If set to TRUE (default), the plot will be shown as part of the function execution.
 
 >> - write_to_file *(bool {"TRUE", "FALSE"})* - whether or not to write the results to a new file in the directory specified in the output_dir argument. By default, results will be written to file.
 

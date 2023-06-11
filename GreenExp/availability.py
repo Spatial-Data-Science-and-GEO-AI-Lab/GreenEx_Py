@@ -16,11 +16,13 @@ from rasterio.enums import Resampling
 import pyproj
 import shapely.geometry as sg
 from shapely.ops import transform
+import folium
 
 # Geospatial data access and catalogs
 import pystac_client
 import planetary_computer
 import odc.stac
+import ee
 
 # Date and time manipulation
 from datetime import datetime, timedelta
@@ -33,10 +35,11 @@ from tqdm.auto import tqdm
 from PIL import Image
 import requests
 from io import BytesIO
+from IPython.display import display
 
 ##### MAIN FUNCTIONS
 def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                  buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, 
+                  buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, plot_aoi=True,
                   write_to_file=True, save_ndvi=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -289,11 +292,35 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ndvi_added.gpkg"), driver="GPKG")
         print("Done")
+
+    if plot_aoi:
+        # Get the total bounds of the poi file
+        poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
+        # Calculate the center coordinates
+        center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
+        # Create a base map
+        map = folium.Map(location=center_coords, zoom_start=10)
+        # Create GeoJSON layers from the GeoDataFrames
+        poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
+        folium.GeoJson(poi.to_crs("EPSG:4326"),
+                    name="PoI",
+                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+        folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
+                    name="Buffer zones",
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+        # Add layer control to the map
+        folium.LayerControl().add_to(map)
+        # Set the title
+        map_title = 'Areas of interest used for mean NDVI calculation'
+        map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
+        # Display map
+        display(map)
     
     return poi
 
 def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood",
-                              buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, 
+                              buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True,
                               write_to_file=True, save_lulc=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file).head(50)
@@ -536,10 +563,35 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
         poi.to_file(os.path.join(output_dir, f"{input_filename}_LCperc_added.gpkg"), driver="GPKG")
         print("Done")
 
+    if plot_aoi:
+        # Get the total bounds of the poi file
+        poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
+        # Calculate the center coordinates
+        center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
+        # Create a base map
+        map = folium.Map(location=center_coords, zoom_start=10)
+        # Create GeoJSON layers from the GeoDataFrames
+        poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
+        folium.GeoJson(poi.to_crs("EPSG:4326"),
+                    name="PoI",
+                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+        folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
+                    name="Buffer zones",
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+        # Add layer control to the map
+        folium.LayerControl().add_to(map)
+        # Set the title
+        map_title = 'Areas of interest used for landcover class percentage calculation'
+        map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
+        # Display map
+        display(map)
+
     return poi
 
 def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                          buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, output_dir=os.getcwd()):
+                          buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True,
+                          write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
@@ -728,10 +780,37 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
         poi.to_file(os.path.join(output_dir, f"{input_filename}_CanopyPerc_added.gpkg"), driver="GPKG")
         print("Done")
 
+    if plot_aoi:
+        # Get the total bounds of the poi file
+        poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
+        # Calculate the center coordinates
+        center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
+        # Create a base map
+        map = folium.Map(location=center_coords, zoom_start=10)
+        # Create GeoJSON layers from the GeoDataFrames
+        poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
+        folium.GeoJson(poi.to_crs("EPSG:4326"),
+                    name="PoI",
+                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+        folium.GeoJson(canopy_src.to_crs("EPSG:4326"),
+                    name="Tree canopy",
+                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+        folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
+                    name="Buffer zones",
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+        # Add layer control to the map
+        folium.LayerControl().add_to(map)
+        # Set the title
+        map_title = 'Areas of interest used for tree canopy cover percentage calculation'
+        map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
+        # Display map
+        display(map)
+
     return poi
 
 def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
-                        buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, write_to_file=True, 
+                        buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True, write_to_file=True, 
                         output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -941,6 +1020,33 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ParkPerc_added.gpkg"), driver="GPKG")
         print("Done")
+
+    if plot_aoi:
+        # Get the total bounds of the poi file
+        poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
+        # Calculate the center coordinates
+        center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
+        # Create a base map
+        map = folium.Map(location=center_coords, zoom_start=10)
+        # Create GeoJSON layers from the GeoDataFrames
+        poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
+        folium.GeoJson(poi.to_crs("EPSG:4326"),
+                    name="PoI",
+                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+        folium.GeoJson(park_src.to_crs("EPSG:4326"),
+                    name="Parks",
+                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+        folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
+                    name="Buffer zones",
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+        # Add layer control to the map
+        folium.LayerControl().add_to(map)
+        # Set the title
+        map_title = 'Areas of interest used for park cover percentage calculation'
+        map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
+        # Display map
+        display(map)
 
     return poi
 
