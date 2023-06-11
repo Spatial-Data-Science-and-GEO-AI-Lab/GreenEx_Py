@@ -5,8 +5,11 @@ channels:
   - defaults
 dependencies:
   - affine=2.4.0=pyhd8ed1ab_0
+  - aiohttp=3.8.4=py311ha68e1ae_1
+  - aiosignal=1.3.1=pyhd8ed1ab_0
   - aom=3.5.0=h63175ca_0
   - asttokens=2.2.1=pyhd8ed1ab_0
+  - async-timeout=4.0.2=pyhd8ed1ab_0
   - attrs=23.1.0=pyh71513ae_1
   - backcall=0.2.0=pyh9f0ad1d_0
   - backports=1.0=pyhd8ed1ab_3
@@ -19,11 +22,13 @@ dependencies:
   - brotli=1.0.9=hcfcfb64_8
   - brotli-bin=1.0.9=hcfcfb64_8
   - bzip2=1.0.8=h8ffe710_4
+  - c-ares=1.19.1=hcfcfb64_0
   - c-blosc2=2.9.2=h183a6f4_0
   - ca-certificates=2023.5.7=h56e8100_0
   - cachetools=5.3.0=pyhd8ed1ab_0
   - cairo=1.16.0=hdecc03f_1016
   - certifi=2023.5.7=pyhd8ed1ab_0
+  - cffi=1.15.1=py311h7d9ee11_3
   - cfitsio=4.2.0=h9ebe7e4_0
   - charls=2.4.2=h1537add_0
   - charset-normalizer=3.1.0=pyhd8ed1ab_0
@@ -35,6 +40,7 @@ dependencies:
   - colorcet=3.0.1=pyhd8ed1ab_0
   - comm=0.1.3=pyhd8ed1ab_0
   - contourpy=1.0.7=py311h005e61a_0
+  - cryptography=41.0.1=py311h28e9c30_0
   - curl=8.1.1=h68f0423_0
   - cycler=0.11.0=pyhd8ed1ab_0
   - cytoolz=0.12.0=py311ha68e1ae_1
@@ -44,6 +50,7 @@ dependencies:
   - dav1d=1.2.0=hcfcfb64_0
   - debugpy=1.6.7=py311h12c1d0e_0
   - decorator=5.1.1=pyhd8ed1ab_0
+  - earthengine-api=0.1.356=pyhd8ed1ab_0
   - executing=1.2.0=pyhd8ed1ab_0
   - expat=2.5.0=h63175ca_1
   - fiona=1.9.4=py311h4e4dc46_0
@@ -58,6 +65,7 @@ dependencies:
   - fonttools=4.39.4=py311ha68e1ae_0
   - freetype=2.12.1=h546665d_1
   - freexl=1.0.6=h67ca5e6_1
+  - frozenlist=1.3.3=py311ha68e1ae_0
   - fsspec=2023.5.0=pyh1a96a4e_0
   - gdal=3.7.0=py311heaf1029_0
   - geopandas=0.13.0=pyhd8ed1ab_0
@@ -66,8 +74,19 @@ dependencies:
   - geotiff=1.7.1=h7222e44_8
   - gettext=0.21.1=h5728263_0
   - giflib=5.2.1=h64bf75a_3
+  - google-api-core=2.8.2=pyhd8ed1ab_0
+  - google-api-python-client=2.88.0=pyhd8ed1ab_0
+  - google-auth=2.6.0=pyhd3eb1b0_0
+  - google-auth-httplib2=0.1.0=pyhd8ed1ab_1
+  - google-cloud-core=2.3.2=pyhd8ed1ab_0
+  - google-cloud-storage=2.9.0=pyh1a96a4e_0
+  - google-crc32c=1.1.2=py311h48d9ab2_4
+  - google-resumable-media=2.5.0=pyhd8ed1ab_0
+  - googleapis-common-protos=1.57.1=pyhd8ed1ab_0
+  - grpcio=1.55.0=py311h5bc0dda_1
   - hdf4=4.2.15=h1334946_6
   - hdf5=1.14.0=nompi_h918d9b7_103
+  - httplib2=0.22.0=pyhd8ed1ab_0
   - icu=72.1=h63175ca_0
   - idna=3.4=pyhd8ed1ab_0
   - imagecodecs=2023.1.23=py311h2c9abbb_2
@@ -91,6 +110,7 @@ dependencies:
   - lazy_loader=0.2=pyhd8ed1ab_0
   - lcms2=2.15=h3e3b177_1
   - lerc=4.0.0=h63175ca_0
+  - libabseil=20230125.2=cxx17_h63175ca_2
   - libaec=1.0.6=h63175ca_1
   - libarchive=3.6.2=h27c7867_0
   - libavif=0.11.1=h5da7522_1
@@ -99,12 +119,14 @@ dependencies:
   - libbrotlidec=1.0.9=hcfcfb64_8
   - libbrotlienc=1.0.9=hcfcfb64_8
   - libcblas=3.9.0=16_win64_mkl
+  - libcrc32c=1.1.2=h0e60522_0
   - libcurl=8.1.1=h68f0423_0
   - libdeflate=1.18=hcfcfb64_0
   - libexpat=2.5.0=h63175ca_1
   - libffi=3.4.2=h8ffe710_5
   - libgdal=3.7.0=hdf18f8d_0
   - libglib=2.76.3=he8f3873_0
+  - libgrpc=1.55.0=h0c1e3fa_1
   - libhwloc=2.9.1=h51c2c0f_0
   - libiconv=1.17=h8ffe710_0
   - libjpeg-turbo=2.1.5.1=hcfcfb64_0
@@ -113,6 +135,7 @@ dependencies:
   - libnetcdf=4.9.2=nompi_hc664c2b_104
   - libpng=1.6.39=h19919ed_0
   - libpq=15.3=ha9684e8_0
+  - libprotobuf=4.23.2=h1975477_4
   - libpysal=4.7.0=pyhd8ed1ab_0
   - librttopo=1.1.0=he1da8c1_13
   - libsodium=1.0.18=h8d14728_1
@@ -146,6 +169,7 @@ dependencies:
   - momepy=0.6.0=pyhd8ed1ab_1
   - mpmath=1.2.1=py311haa95532_0
   - msys2-conda-epoch=20160418=1
+  - multidict=6.0.4=py311ha68e1ae_0
   - multipledispatch=0.6.0=py_0
   - munch=3.0.0=pyhd8ed1ab_0
   - munkres=1.1.4=pyh9f0ad1d_0
@@ -157,7 +181,7 @@ dependencies:
   - odc-geo=0.4.0=pyhd8ed1ab_0
   - odc-stac=0.3.6=pyhd8ed1ab_0
   - openjpeg=2.5.0=ha2aaf27_2
-  - openssl=3.1.1=hcfcfb64_0
+  - openssl=3.1.1=hcfcfb64_1
   - osmnx=1.3.1.post0=pyhd8ed1ab_0
   - packaging=23.1=pyhd8ed1ab_0
   - pandas=2.0.2=py311hf63dbb6_0
@@ -182,10 +206,14 @@ dependencies:
   - pthread-stubs=0.4=hcd874cb_1001
   - pthreads-win32=2.9.1=hfa6e2cd_3
   - pure_eval=0.2.2=pyhd8ed1ab_0
+  - pyasn1=0.4.8=py_0
+  - pyasn1-modules=0.2.7=py_0
+  - pycparser=2.21=pyhd8ed1ab_0
   - pyct=0.4.6=py_0
   - pyct-core=0.4.6=py_0
   - pydantic=1.10.8=py311ha68e1ae_0
   - pygments=2.15.1=pyhd8ed1ab_0
+  - pyopenssl=23.2.0=pyhd8ed1ab_1
   - pyparsing=3.0.9=pyhd8ed1ab_0
   - pyproj=3.5.0=py311h095e9de_1
   - pysocks=1.7.1=pyh0701188_6
@@ -203,8 +231,10 @@ dependencies:
   - pyyaml=6.0=py311ha68e1ae_5
   - pyzmq=25.0.2=py311h7b3f143_0
   - rasterio=1.3.7=py311h826718d_1
+  - re2=2023.03.02=hd4eee63_0
   - requests=2.31.0=pyhd8ed1ab_0
   - rioxarray=0.14.1=pyhd8ed1ab_0
+  - rsa=4.9=pyhd8ed1ab_0
   - rtree=1.0.1=py311hcacb13a_1
   - scikit-image=0.20.0=py311hf63dbb6_1
   - scikit-learn=1.2.2=py311h142b183_2
@@ -231,6 +261,7 @@ dependencies:
   - typing_extensions=4.6.2=pyha770c72_0
   - tzdata=2023c=h71feb2d_0
   - ucrt=10.0.22621.0=h57928b3_0
+  - uritemplate=4.1.1=pyhd8ed1ab_0
   - urllib3=2.0.2=pyhd8ed1ab_0
   - vc=14.3=hb25d44b_16
   - vc14_runtime=14.34.31931=h5081d32_16
@@ -247,6 +278,7 @@ dependencies:
   - xyzservices=2023.5.0=pyhd8ed1ab_1
   - xz=5.2.6=h8d14728_0
   - yaml=0.2.5=h8ffe710_2
+  - yarl=1.9.2=py311ha68e1ae_0
   - zeromq=4.3.4=h0e60522_1
   - zfp=1.0.0=h63175ca_3
   - zipp=3.15.0=pyhd8ed1ab_0
@@ -259,7 +291,6 @@ dependencies:
     - argon2-cffi-bindings==21.2.0
     - arrow==1.2.3
     - bleach==6.0.0
-    - cffi==1.15.1
     - defusedxml==0.7.1
     - fastjsonschema==2.17.1
     - filelock==3.12.0
@@ -286,7 +317,6 @@ dependencies:
     - prometheus-client==0.17.0
     - protobuf==4.23.2
     - pyclipper==1.3.0.post4
-    - pycparser==2.21
     - pyrsistent==0.19.3
     - python-json-logger==2.0.7
     - pywinpty==2.0.10
