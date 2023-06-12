@@ -5,6 +5,9 @@ Currently (update 10-06-23), the python module can only be locally installed by 
 **Cloning GitHub repository using Git Bash** 
 <br>For additional information, please check this [link](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?tool=webui)
 
+Prerequisites:
+- [Git Bash](https://git-scm.com/) installed
+
 Steps:
 1.	On GitHub.com, navigate to the main page of the repository.
 <br>```https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py```
@@ -19,6 +22,9 @@ Steps:
 <br><br>**Cloning GitHub repository using GitHub Desktop app** 
 <br>For additional information, please check this [link](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository?tool=desktop)
 
+Prerequisites:
+ - [GitHub desktop](https://desktop.github.com/) installed
+
 Steps:
 1.	On GitHub.com, navigate to the main page of the repository.
 <br>```https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py```
@@ -30,7 +36,7 @@ Steps:
 <br>For additional information, please check this [link](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
 
 Prerequisites:
-- Installation of either Anaconda or Miniconda
+- Either [Anaconda](https://www.anaconda.com/download) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) installed
 - GitHub repository is already cloned
 
 Steps:
