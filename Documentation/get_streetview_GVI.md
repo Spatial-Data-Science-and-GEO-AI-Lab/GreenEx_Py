@@ -1,4 +1,4 @@
-**get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, network_file=None, write_to_file=True, output_dir=os.getcwd())**
+**get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, workers=4, network_file=None, write_to_file=True, output_dir=os.getcwd())**
 
 > Retrieve the average Greenness Visibility Index (GVI), based on a streetview analysis, for points and/or areas of interest. Note that this function is based on research conducted by [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility).
 
@@ -15,6 +15,8 @@
 >> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries. In case set to "neighbourhood", buffer_dist argument is optional and if not specified, GVI values will be calculated for road network locations within each polygon geometry. If set to "house", network will be retrieved from OpenStreetMap and based on buffer_dist if not provided. 
 
 >> - buffer_dist *(int)* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the point/polygon of interest surrounding distance that should be considered when defining road network locations for calculating GVI values. 
+
+>> - workers *(int)* – the maximum number of concurrent worker threads to use (i.e. simultaneous tasks that can be executed), providing control over the level of concurrency in the function.
 
 >> - network_file *(string)* – optional, the absolute or relative path to the file containing the network (transportation infrastructure) to consider. If not specified, the network will be retrieved through OpenStreetMap considering the point/polygon's surrounding straight line distance as specified in the buffer_dist argument.
 

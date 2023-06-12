@@ -284,7 +284,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     return poi, sampled_points_gdf
 
 
-def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None,
+def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, workers=4,
                        network_file=None, write_to_file=True, output_dir=os.getcwd()):
     
     ### Step 1: Read and process user inputs, check conditions
@@ -333,6 +333,10 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     # Make sure Mapillary API token is provided
     if access_token is None:
         raise TypeError("Please make sure that an access token for Mapillary is provided")
+
+    # Make sure number of workers is valid value
+    if not isinstance(workers, int) or (not workers > 0):
+        raise TypeError("Please make sure that the workers argument is set to a positive integer")
     
     # Determine area of interest by taking bounding box of poi file, incl. buffer if specified
     if buffer_dist is None:
@@ -392,7 +396,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     # Retrieve features, images, from Mapillary for the road locations
     features = get_features_on_points(buffer_points, access_token, epsg)
     # Process the features and calculate GVI score for road locations
-    gvi_per_point = download_images_for_points(features, access_token, epsg)
+    gvi_per_point = download_images_for_points(features, access_token, epsg, workers)
     end_images = time()
     elapsed_images = end_images - start_images
     print(f"Done, running time: {str(timedelta(seconds=elapsed_images))} \n")
