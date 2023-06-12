@@ -227,5 +227,9 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         outcome = "True"
     else:
         outcome = "False"
+
+    if np.isnan(min_distance) or min_distance > target_dist:
+        min_distance = target_dist
+        print(f"Warning: no park could be detected within {target_dist}m for PoI with id {df_row.id} based on current parameters, distance_to_park is therefore set to target distance. Consider for further analysis.")
     
     return outcome, min_distance
