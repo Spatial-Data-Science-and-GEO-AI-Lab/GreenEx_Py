@@ -22,7 +22,8 @@ from IPython.display import display
 
 ##### MAIN FUNCTIONS
 def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidean",
-                               destination="centroids", network_type="all", plot_aoi=True, write_to_file=True, output_dir=os.getcwd()):
+                               destination="centroids", network_type="all", min_park_area=None, plot_aoi=True, write_to_file=True, 
+                               output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
@@ -73,6 +74,11 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     if destination not in ["centroids", "entrance"]:
         raise TypeError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
 
+    # Make sure min_park_area has valid value
+    if min_park_area is not None:
+        if not isinstance(min_park_area, int) or (not min_park_area > 0):
+            raise TypeError("Please make sure that the min_park_area is set as a positive integer")
+
     ### Step 2: Obtain bounding box in which all points of interest are located, including target_dist + 50% buffer to account for edge effects
     poi_polygon = sg.box(*poi.total_bounds).buffer(target_dist*1.5)
     # Transform to 4326 for OSM
@@ -102,14 +108,19 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
         # Change CRS to CRS of poi file
         park_src.to_crs(f"EPSG:{epsg}", inplace=True)
-        # Create a boolean mask to filter out polygons and multipolygons
-        polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
-        # Filter the GeoDataFrame to keep only polygons and multipolygons
-        park_src = park_src.loc[polygon_mask]
         end_park_retrieval = time()
         elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
     
+    # Create a boolean mask to filter out polygons and multipolygons
+    polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
+    # Filter the GeoDataFrame to keep only polygons and multipolygons
+    park_src = park_src.loc[polygon_mask]
+
+    # Maintain parks that have an area greater than or equal to min_park_area
+    if min_park_area is not None:
+        park_src = park_src[park_src.area >= min_park_area]
+
     # Compute park centroids if destination argument set to centroids
     if destination == "centroids":
         park_src['centroid'] = park_src['geometry'].centroid

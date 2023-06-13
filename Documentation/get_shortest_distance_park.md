@@ -1,4 +1,4 @@
-**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
+**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, min_park_area=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
 
 > Assess whether or not parks are located within a threshold network distance for points of interest.
 
@@ -19,6 +19,8 @@
 >> - destination *(string {"centroids", "entrance"})* – the destination points for the parks. If "entrance", network distances will be computed between the point location's nearest network node and the network nodes that are within 20 meters of the park boundaries - therefore considered as (fake) entry points. Euclidian distance between point location and nearest network node will be added. If "centroids", the same procedure applies while also taking into account the euclidian distance between the park's centroid and fake entry points.
 
 >> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
+
+>> - min_park_area *(int)* – optional, if set to integer value, only parks with an area greater than or equal to the min_park_area in squared meters will be considered for the shortest distance calculation. 
 
 >> - plot_aoi *(bool {"TRUE", "FALSE"})* - whether or not to plot the areas of interest that have been used for the shortest distance calculation. If set to TRUE (default), the plot will be shown as part of the function execution.
 
