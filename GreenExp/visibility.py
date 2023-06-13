@@ -109,6 +109,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(dsm_raster_file) as src:
         dsm = src.read(1)
         dsm_crs = src.crs.to_epsg()
+        if dsm_crs is None:
+            raise ValueError("The DSM raster does not have a CRS, please make sure it does and re-run the function")
         dsm_bounds = src.bounds
 
     # Reproject if EPSG is not equal to CRS of poi file
@@ -134,6 +136,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(dtm_raster_file) as src:
         dtm = src.read(1)
         dtm_crs = src.crs.to_epsg()
+        if dtm_crs is None:
+            raise ValueError("The DTM raster does not have a CRS, please make sure it does and re-run the function")
         dtm_bounds = src.bounds
     
     if not dtm_crs == epsg:
@@ -168,6 +172,8 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     with rasterio.open(greendata_raster_file) as src:
         green = src.read(1)
         green_crs = src.crs.to_epsg()
+        if green_crs is None:
+            raise ValueError("The greenspace raster does not have a CRS, please make sure it does and re-run the function")
         green_bounds = src.bounds
     
     if not green_crs == epsg:
