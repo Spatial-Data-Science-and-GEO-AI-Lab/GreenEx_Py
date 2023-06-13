@@ -378,6 +378,10 @@ Writing results to new geopackage file in specified directory...
 Done
 ```
 
+The resulting GVI values for the example data locations are shown in the figure below where an overlay is included of the DSM and the binary trees raster.
+
+![Viewshed](Plots/viewshed.png)
+
 Function output (pt.1);
 
 |   | geometry                      | id | GVI   | nr_of_points |
