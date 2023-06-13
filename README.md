@@ -17,7 +17,7 @@
 - [Sources](#Sources)
 
 # Installation
-To install the python module on your local computer, please refer to the instruction manuals for [Windows](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Windows_install.md) and [Mac](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Mac_install.md). 
+To install the python module on your local computer, please refer to the instruction manuals for [Windows](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Windows_install.md) and [Mac](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Mac_install.md). Alternatively, you can use the module in Google Colab by running the notebooks in the [Colab](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Colab) folder.
 
 # Functionalities
 This python module models greenspace exposure from three perspectives; availability, accessibility and visibility.
@@ -176,14 +176,14 @@ Additionally, users may provide a vector file which contains park geometries. Th
 4. The area is likely to contain trees, grass and/or greenery
 5. The area can reasonable be used for walking or recreational activities
 
-The following figure illustrates the parks that have been extracted through OpenStreetMap, including the three point locations of the example_data and a 15-min walking distance network buffer for each;
+The following figure illustrates the parks that have been extracted through OpenStreetMap (green), including the three point locations of the example_data and a 15-min walking distance network buffer for each (black);
 
-<iframe src="Plots/park_avail.html" height="500" width="100%"></iframe>
+![Park areas](Plots/parks_avail.png)
 
 The percentage of area that is covered by parks can be calculated by applying the following code;
 
 ```python
-availability.get_park_percentage(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
+availability.get_park_percentage(point_of_interest_file=path+"AMS_example_data.gpkg",
                                  buffer_type="network",
                                  travel_speed=5,
                                  trip_time=15,
@@ -192,25 +192,26 @@ availability.get_park_percentage(point_of_interest_file=path+"Test_multiple_home
 
 # Information provided while function was running
 Retrieving parks within total bounds of Point(s) of interest, extended by buffer distance if specified...
-Done, running time: 0:00:05.224137 
+Done, running time: 0:00:04.991364 
 
 Retrieving network within total bounds of Point(s) of interest, extended by buffer distance as specified...
-Done, running time: 0:00:30.577554 
+Done, running time: 0:01:32.496219 
 
-Retrieving isochrone for point(s) of interest: 100%|██████████| 3/3 [00:15<00:00,  5.07s/it]
+Retrieving isochrone for point(s) of interest: 100%
+3/3 [00:35<00:00, 11.74s/it]
 Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb 
 
 Calculating percentage of park area coverage...
-Done, running time: 0:00:00.140806 
+Done, running time: 0:00:00.762194 
 ```
 
 Function output;
 
-|   | id | geometry                      | park_cover |
-|---|----|-------------------------------|------------|
-| 0 | 1  | POINT (388644.249 392861.634) | 12.94%     |
-| 1 | 2  | POINT (385981.911 393805.494) | 7.1%       |
-| 2 | 3  | POINT (388631.230 395322.181) | 12.89%     |
+|   | geometry                      | id | park_cover |
+|---|-------------------------------|----|------------|
+| 0 | POINT (118883.345 485054.641) | 1  | 21.34%     |
+| 1 | POINT (118246.855 488082.089) | 2  | 13.38%     |
+| 2 | POINT (122483.550 487728.517) | 3  | 1.14%      |
 
 ## *Accessibility*
 Greenspace accessibility is currently measured using one function; [get_shortest_distance_park](#get_shortest_distance_park). 
@@ -235,32 +236,33 @@ Consider the point locations as given in the example data and the following scen
 
 The function can be applied as follows;
 ```python
-accessibility.get_shortest_distance_park(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
+accessibility.get_shortest_distance_park(point_of_interest_file=path+"AMS_example_data.gpkg",
                                          target_dist=500,
                                          distance_type='euclidean',
                                          destination='entrance',
+                                         plot_aoi=False,
                                          write_to_file=False)
 
 # Information provided while function was running
 Retrieving parks within total bounds of point(s) of interest, extended by a 750.0m buffer to account for edge effects...
-Done, running time: 0:00:05.020804 
+Done, running time: 0:00:21.280659 
 
 Retrieving infrastructure network within total bounds of point(s) of interest, extended by a 750.0m buffer to account for edge effects...
-Done, running time: 0:00:19.599954 
+Done, running time: 0:01:16.104272 
 
 Calculating shortest distances...
-Done, running time: 0:00:01.477179 
+Done, running time: 0:00:14.851282 
 ```
 
 Function output;
 
-|   | id | geometry                      | park_within_500m | distance_to_park |
-|---|----|-------------------------------|------------------|------------------|
-| 0 | 1  | POINT (388644.249 392861.634) | True             | 236.0            |
-| 1 | 2  | POINT (385981.911 393805.494) | True             | 122.0            |
-| 2 | 3  | POINT (388631.230 395322.181) | True             | 175.0            |
+|   | geometry                      | id | park_within_500m | distance_to_park |
+|---|-------------------------------|----|------------------|------------------|
+| 0 | POINT (118883.345 485054.641) | 1  | True             | 259.0            |
+| 1 | POINT (118246.855 488082.089) | 2  | True             | 161.0            |
+| 2 | POINT (122483.550 487728.517) | 3  | True             | 150.0            |
 
-The function returns a boolean value indicating whether at least one park is within the target distance. Additionally, it provides the distance in meters if applicable. 
+The function returns a boolean value indicating whether at least one park is within the target distance. Additionally, it provides the distance in meters if within the threshold distance. 
 
 ## *Visibility*
 Greenspace visibility is measured using two functions; [get_streetview_GVI](#get_streetview_GVI) and [get_viewshed_GVI](#get_viewshed_GVI). 
@@ -277,25 +279,27 @@ The function generates sample road locations surrounding points of interest or w
 Using the example data and a buffer of 150 meters surrounding each point location, the streetview GVI function can be applied as follows;
 
 ```python
-visibility.get_streetview_GVI(point_of_interest_file=test_path+"Test_multiple_home_locations.gpkg",
+visibility.get_streetview_GVI(point_of_interest_file=path+"AMS_example_data.gpkg",
                               access_token="MAPILLARY_API_TOKEN",
                               buffer_dist=150,
                               write_to_file=False)
 
 # Information provided while function was running
 Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in case provided...
-Done, running time: 0:00:06.198980 
+Done, running time: 0:00:47.329337 
 
-Computing sample points for roads within area of interest network...
-Done, running time: 0:00:00.354813 
+Computing sample points for roads within area of interest's network...
+Done, running time: 0:00:01.145286 
 
 Downloading StreetView images for road sample points...
-Downloading tiles: 100%|██████████| 3/3 [00:03<00:00,  1.05s/it]
-Downloading images: 100%|██████████| 76/76 [06:50<00:00,  5.41s/it]
-Done, running time: 0:07:04.892694 
+Downloading tiles: 100%
+5/5 [00:20<00:00, 3.44s/it]
+Downloading images: 100%
+86/86 [43:10<00:00, 23.47s/it]
+Done, running time: 0:44:08.827193 
 
 Calculating StreetView GVI score...
-Done, running time: 0:00:00.227429 
+Done, running time: 0:00:00.373096 
 
 Note: workflow for calculating Streetview GVI based on code by Ilse A. Vázquez Sánchez 
 source: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility 
@@ -305,26 +309,26 @@ Function output (pt.1);
 
 |   | id | geometry                      | GVI      | nr_of_points |
 |---|----|-------------------------------|----------|--------------|
-| 0 | 1  | POINT (388644.249 392861.634) | NaN      | 0            |
-| 1 | 2  | POINT (385981.911 393805.494) | 0.260314 | 16           |
-| 2 | 3  | POINT (388631.230 395322.181) | NaN      | 0            |
+| 0 | 1  | POINT (118883.345 485054.641) | 0.153368 | 33           |
+| 1 | 2  | POINT (118246.855 488082.089) | 0.212064 | 36           |
+| 2 | 3  | POINT (122483.550 487728.517) | 0.003300 | 13           |
 
 
 Function output (pt.2);
 
-|     | id  | geometry                      | GVI | is_panoramic | missing |
-|-----|-----|-------------------------------|-----|--------------|---------|
-| 0   | 1   | POINT (388498.170 392886.953) | NaN | None         | True    |
-| 1   | 1   | POINT (388496.875 392836.970) | NaN | None         | True    |
-| 2   | 1   | POINT (388542.543 392753.184) | NaN | None         | True    |
-| 3   | 1   | POINT (388523.316 392902.478) | NaN | None         | True    |
-| 4   | 1   | POINT (388651.185 392990.046) | NaN | None         | True    |
-| ... | ... | ...                           | ... | ...          | ...     |
-| 71  | 3   | POINT (388766.236 395335.800) | NaN | None         | True    |
-| 72  | 3   | POINT (388743.218 395252.725) | NaN | None         | True    |
-| 73  | 3   | POINT (388735.292 395302.093) | NaN | None         | True    |
-| 74  | 3   | POINT (388575.755 395218.208) | NaN | None         | True    |
-| 75  | 3   | POINT (388643.730 395392.113) | NaN | None         | True    |
+| x   | id  | geometry                      | GVI      | is_panoramic | missing |
+|-----|-----|-------------------------------|----------|--------------|---------|
+| 0   | 1   | POINT (119009.625 484981.604) | 0.077009 | True         | False   |
+| 1   | 1   | POINT (118963.280 484962.840) | 0.070314 | True         | False   |
+| 2   | 1   | POINT (118916.934 484944.076) | 0.102058 | True         | False   |
+| 3   | 1   | POINT (118870.022 484927.224) | 0.064482 | True         | False   |
+| 4   | 1   | POINT (118855.540 484975.007) | 0.014510 | True         | False   |
+| ... | ... | ...                           | ...      | ...          | ...     |
+| 81  | 3   | POINT (122504.938 487845.950) | 0.000000 | True         | False   |
+| 82  | 3   | POINT (122344.012 487735.541) | NaN      | None         | True    |
+| 83  | 3   | POINT (122393.881 487732.156) | 0.000000 | True         | False   |
+| 84  | 3   | POINT (122408.407 487615.927) | 0.001916 | False        | False   |
+| 85  | 3   | POINT (122353.549 487686.836) | NaN      | None         | True    |
 
 The function returns the average GVI value as well as the number of sample road locations upon which this value was based. As is evident, the function highly depends on the availability of streetview images as no scores could be calculated for the first and third calculation. This can be confirmed by inspecting the second dataframe that is returned by the function; this dataframe includes each sample road location that was computed and its corresponding image's information. If missing is equal to True, no image could be found within 100 meters of the sample road location. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
@@ -342,10 +346,10 @@ Consider the point locations as given in the example data and the following scen
 The viewshed GVI function can be applied as follows;
 
 ```python
-visibility.get_viewshed_GVI(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
-                            greendata_raster_file=test_path+"GM_GS_5m.tif",
-                            dtm_raster_file=test_path+"GM_DTM_5m.tif",
-                            dsm_raster_file=test_path+"GM_DSM_5m.tif",
+visibility.get_viewshed_GVI(point_of_interest_file=path+"AMS_example_data.gpkg",
+                            greendata_raster_file=test_path+"AMS_trees_binary_crs.tif",
+                            dtm_raster_file=test_path+"AMS_DTM_crs.tif",
+                            dsm_raster_file=test_path+"AMS_DSM_crs.tif",
                             buffer_dist=100,
                             viewing_dist=250,
                             sample_dist=50,
@@ -354,43 +358,49 @@ visibility.get_viewshed_GVI(point_of_interest_file=path+"Test_multiple_home_loca
 
 # Information provided while function was running
 Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in case provided...
-Done, running time: 0:00:15.295298 
+Done, running time: 0:00:28.402266 
 
-Computing sample points for roads within area of interest network...
+Computing sample points for roads within area of interest's network...
 Note: creation of sample points based on code by Ondrej Mlynarcik 
 source: https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb
-Done, running time: 0:00:00.138457 
+Done, running time: 0:00:00.160945 
 
-Calculating GVI for Point 1: 100%|██████████| 12/12 [00:01<00:00, 10.06it/s]
-Calculating GVI for Point 2: 100%|██████████| 60/60 [00:05<00:00, 10.24it/s]
-Calculating GVI for Point 3: 100%|██████████| 46/46 [00:04<00:00,  9.47it/s]
+Calculating GVI for Point 1: 100%
+117/117 [00:15<00:00, 7.82it/s]
+Calculating GVI for Point 2: 100%
+86/86 [00:11<00:00, 8.53it/s]
+Calculating GVI for Point 3: 100%
+48/48 [00:06<00:00, 7.09it/s]
 Note: calculation of Viewshed GVI based on code by Johnny Huck and Labib Labib 
-source: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py  
+source: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py 
+
+Writing results to new geopackage file in specified directory...
+Done
 ```
 
 Function output (pt.1);
 
-|   | id | geometry                      | GVI   | nr_of_points |
-|---|----|-------------------------------|-------|--------------|
-| 0 | 1  | POINT (388644.249 392861.634) | 0.532 | 12           |
-| 1 | 2  | POINT (385981.911 393805.494) | 0.118 | 60           |
-| 2 | 3  | POINT (388631.230 395322.181) | 0.362 | 46           |
+|   | geometry                      | id | GVI   | nr_of_points |
+|---|-------------------------------|----|-------|--------------|
+| 0 | POINT (118883.345 485054.641) | 1  | 0.276 | 117          |
+| 1 | POINT (118246.855 488082.089) | 2  | 0.231 | 86           |
+| 2 | POINT (122483.550 487728.517) | 3  | 0.024 | 48           |
 
 Function output (pt.2);
 
 |     | id  | geometry                      | GVI      |
 |-----|-----|-------------------------------|----------|
-| 0   | 1   | POINT (388564.100 392907.269) | 0.582617 |
-| 1   | 1   | POINT (388579.827 392895.998) | 0.52047  |
-| 2   | 1   | POINT (388661.088 392846.149) | 0.509614 |
-| 3   | 1   | POINT (388564.100 392907.269) | 0.582617 |
-| 4   | 1   | POINT (388661.088 392846.149) | 0.509614 |
+| 0   | 1   | POINT (118602.894 485014.928) | 0.157408 |
+| 1   | 1   | POINT (118656.183 485033.863) | 0.185535 |
+| 2   | 1   | POINT (118708.299 485057.627) | 0.159684 |
+| 3   | 1   | POINT (118760.416 485081.391) | 0.184989 |
+| 4   | 1   | POINT (118813.406 485102.752) | 0.222209 |
 | ... | ... | ...                           | ...      |
-| 113 | 3   | POINT (388729.860 395335.932) | 0.338168 |
-| 114 | 3   | POINT (388743.218 395252.725) | 0.311971 |
-| 115 | 3   | POINT (388644.604 395385.631) | 0.414666 |
-| 116 | 3   | POINT (388626.529 395386.291) | 0.435242 |
-| 117 | 3   | POINT (388626.529 395386.291) | 0.435242 |
+| 246 | 3   | POINT (122454.133 487733.398) | 0.0      |
+| 247 | 3   | POINT (122451.895 487596.911) | 0.0      |
+| 248 | 3   | POINT (122446.453 487664.938) | 0.0      |
+| 249 | 3   | POINT (122441.012 487732.964) | 0.007802 |
+| 250 | 3   | POINT (122467.668 487726.301) | 0.0      |
 
 The function returns the average GVI value as well as the number of sample road locations upon which this value was based. To get a better idea of how the average GVI values were calculated, an additional dataframe is returned by the function. This dataframe contains all the sample road locations and their corresponding GVI values. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
