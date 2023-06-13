@@ -43,6 +43,8 @@ The resulting geodataframe contains three locations in Amsterdam (The Netherland
 | 1 | POINT (118246.855 488082.089) |
 | 2 | POINT (122483.550 487728.517) |
 
+For a more detailed overview of the function arguments, requirements and output, please look into the [documentation](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Documentation) section of the module.
+
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
 <br><br>
@@ -60,7 +62,7 @@ To illustrate the differences between the latter two, the following figure was g
 
 ![Difference Euclidean and Network buffer](Plots/eucl_network.png)
 
-The four availability functions are briefly described hereunder. As mentioned before, for a more detailed overview of the function arguments, requirements and output, please look into the [documentation](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Documentation) section of the module.
+The four availability functions are briefly described hereunder. 
 
 ### **get_mean_NDVI**
 This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a geopackage (.gpkg) format, ideally with a projected CRS.
