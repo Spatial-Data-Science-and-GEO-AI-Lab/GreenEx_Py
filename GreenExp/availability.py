@@ -9,7 +9,6 @@ import os
 import geopandas as gpd
 import osmnx as ox
 import networkx as nx
-import momepy
 import rioxarray
 import xrspatial
 from rasterio.enums import Resampling
