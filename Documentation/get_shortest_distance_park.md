@@ -1,4 +1,4 @@
-**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, write_to_file=True, output_dir=os.getcwd())**
+**get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
 
 > Assess whether or not parks are located within a threshold network distance for points of interest.
 
@@ -10,7 +10,7 @@
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
->> - target_dist *(int)* – threshold distance surrounding the point locations in which parks should be located. If no park is detected within threshold distance based on the current parameters, the distance to park will be set to the given threshold distance. The actual distance to the nearest park cannot always be retrieved properly due to edge effects concerning the area for which the network and parks are retrieved through OpenStreetMap. A warning is also provided in this case, as it should be considered for further analysis. 
+>> - target_dist *(int)* – threshold distance surrounding the point locations in which parks should be located. If no park destination is detected within threshold distance for the current parameters, the distance to park will be set to the given threshold distance. The actual distance to the nearest park cannot always be retrieved properly due to edge effects concerning the area for which the network and parks are retrieved through OpenStreetMap. A warning is also provided in this case, as it should be considered for further analysis. 
 
 >> - park_vector_file *(string)* – optional, the absolute or relative path to the vector file containing park data. In case no file is provided, park data will be retrieved from OpenStreetMap.
 
@@ -19,6 +19,10 @@
 >> - destination *(string {"centroids", "entrance"})* – the destination points for the parks. If "entrance", network distances will be computed between the point location's nearest network node and the network nodes that are within 20 meters of the park boundaries - therefore considered as (fake) entry points. Euclidian distance between point location and nearest network node will be added. If "centroids", the same procedure applies while also taking into account the euclidian distance between the park's centroid and fake entry points.
 
 >> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
+
+>> - plot_aoi *(bool {"TRUE", "FALSE"})* - whether or not to plot the areas of interest that have been used for the shortest distance calculation. If set to TRUE (default), the plot will be shown as part of the function execution.
+
+>> - write_to_file *(bool {"TRUE", "FALSE"})* - whether or not to write the results to a new file in the directory specified in the output_dir argument. By default, results will be written to file.
 
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 

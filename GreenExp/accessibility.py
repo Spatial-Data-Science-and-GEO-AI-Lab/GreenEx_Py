@@ -11,14 +11,18 @@ import osmnx as ox
 import shapely.geometry as sg
 import networkx as nx
 from scipy.spatial import cKDTree
+import folium
 
 # Date and time manipulation
 from time import time
 from datetime import timedelta
 
+# Images
+from IPython.display import display
+
 ##### MAIN FUNCTIONS
 def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidean",
-                               destination="centroids", network_type="all", write_to_file=True, output_dir=os.getcwd()):
+                               destination="centroids", network_type="all", plot_aoi=True, write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
@@ -98,6 +102,10 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
         # Change CRS to CRS of poi file
         park_src.to_crs(f"EPSG:{epsg}", inplace=True)
+        # Create a boolean mask to filter out polygons and multipolygons
+        polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
+        # Filter the GeoDataFrame to keep only polygons and multipolygons
+        park_src = park_src.loc[polygon_mask]
         end_park_retrieval = time()
         elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
         print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
@@ -105,7 +113,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     # Compute park centroids if destination argument set to centroids
     if destination == "centroids":
         park_src['centroid'] = park_src['geometry'].centroid
-    
+
     # Assign an id to all parks to identify them at later stage
     park_src['park_id'] = list(range(len(park_src)))
 
@@ -134,7 +142,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
-    
+
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
@@ -144,6 +152,35 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistPark_added.gpkg"), driver="GPKG")
         print("Done")
+
+    if plot_aoi:
+        # Get the total bounds of the poi file
+        poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
+        # Calculate the center coordinates
+        center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
+        # Create a base map
+        map = folium.Map(location=center_coords, zoom_start=10)
+        # Create GeoJSON layers from the GeoDataFrames
+        poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
+        folium.GeoJson(poi.to_crs("EPSG:4326"),
+                    name="PoI",
+                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names)).add_to(map)
+        folium.GeoJson(poi.buffer(target_dist).to_crs("EPSG:4326"),
+                    name="Buffer zones",
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+        # Drop centroid column for plot purposes
+        if destination == "centroids":
+            park_src.drop('centroid', axis=1, inplace=True)
+        folium.GeoJson(park_src.to_crs("EPSG:4326"),
+                    name="Parks from OSM",
+                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+        # Add layer control to the map
+        folium.LayerControl().add_to(map)
+        # Set the title
+        map_title = f'Parks and buffer zones used for {distance_type} distance calculation'
+        map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
+        # Display map
+        display(map)
 
     return poi
 
@@ -178,12 +215,15 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
             for node in boundary_nodes:
                 try:
                     path = nx.shortest_path(subgraph, nearest_node, node, weight='length')
-                    if destination == "centroids": 
+                    distance = sum(subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1))
+                    
+                    if destination == "centroids":
                         # Calculate euclidean distance between the fake park entry points and the corresponding park's centroid to minimize distance error
-                        penalty_centroid = park_src_buffer[park_src_buffer['park_id'] == park_id]['centroid'].iloc[0].distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
-                        distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home + penalty_centroid
-                    else:
-                        distance = sum([subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1)]) + penalty_home
+                        centroid = park_src_buffer.loc[park_src_buffer['park_id'] == park_id, 'centroid'].iloc[0]
+                        penalty_centroid = centroid.distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
+                        distance += penalty_centroid
+                    
+                    distance += penalty_home
                     distances[node] = distance
                 except:
                     continue
@@ -221,7 +261,7 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
                 min_distance = round(min_distance,0)
             except:
                 min_distance = np.nan
-    
+
     ### Step 6: Define result, if minimum distance smaller than/equal to target distance threshold --> Good
     if min_distance <= target_dist:
         outcome = "True"
@@ -230,6 +270,6 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
 
     if np.isnan(min_distance) or min_distance > target_dist:
         min_distance = target_dist
-        print(f"Warning: no park could be detected within {target_dist}m for PoI with id {df_row.id} based on current parameters, distance_to_park is therefore set to target distance. Consider for further analysis.")
+        print(f"Warning: no park {destination} could be detected within {distance_type} distance of {target_dist}m for PoI with id {df_row.id}, distance_to_park is therefore set to target distance. Consider for further analysis.")
     
     return outcome, min_distance
