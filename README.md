@@ -382,7 +382,7 @@ Done
 
 The resulting GVI values for the example data locations are shown in the figure below where an overlay is included of the DSM and the binary trees raster.
 
-![Viewshed](Plots/viewshed.png)
+![Viewshed](Plots/viewshed.PNG)
 
 Function output (pt.1);
 
