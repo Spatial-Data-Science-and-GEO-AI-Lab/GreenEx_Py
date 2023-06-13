@@ -33,15 +33,15 @@ import geopandas as gpd
 
 # Path to data
 path = "C:/Users/ygrin/Documents/Studie - MSc ADS/Utrecht University/Block 4 - Thesis/TestData/"
-example_data = gpd.read_file(path + "Test_multiple_home_locations.gpkg")
+example_data = gpd.read_file(path + "AMS_example_data.gpkg")
 ```
-Resulting geodataframe with example data looks as follows;
+The resulting geodataframe contains three locations in Amsterdam (The Netherlands), has a projected Coordinate Reference System (EPSG:28992) and looks as follows;
 
-|   | id | geometry                      |
-|---|----|-------------------------------|
-| 0 | 1  | POINT (388644.249 392861.634) |
-| 1 | 2  | POINT (385981.911 393805.494) |
-| 2 | 3  | POINT (388631.230 395322.181) |
+|   | geometry                      |
+|--:|-------------------------------|
+| 0 | POINT (118883.345 485054.641) |
+| 1 | POINT (118246.855 488082.089) |
+| 2 | POINT (122483.550 487728.517) |
 
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
@@ -63,7 +63,7 @@ To illustrate the differences between the latter two, the following figure was g
 The four availability functions are briefly described hereunder. As mentioned before, for a more detailed overview of the function arguments, requirements and output, please look into the [documentation](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Documentation) section of the module.
 
 ### **get_mean_NDVI**
-This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a geopackage (.gpkg) format, ideally with a projected CRS.
 
 Additionally, users may provide a raster file with NDVI values. If not provided, sentinel-2-l2a data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the NDVI raster. The NDVI raster which was created for the three locations of the example data is included in the following figure;
 
@@ -72,43 +72,48 @@ Additionally, users may provide a raster file with NDVI values. If not provided,
 Now, the mean NDVI for the designated areas can be calculated by applying the following code;
 
 ```python
-availability.get_mean_NDVI(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
+availability.get_mean_NDVI(point_of_interest_file=path+"AMS_example_data.gpkg",
                            buffer_type="euclidean",
-                           buffer_dist=500,
+                           buffer_dist=300,
                            write_to_file=False,
                            save_ndvi=False)
 
 # Information provided while function was running
 Retrieving NDVI raster through planetary computer...
 Information on the satellite image retrieved from planetary computer, use to calculate NDVI values:              
-   Date on which image was generated: 2023-04-04T22:36:14.894809Z              
-   Percentage of cloud cover: 8.471548              
-   Percentage of pixels with missing data 0.000123
-Done, running time: 0:00:08.906117 
+   Date on which image was generated: 2023-02-14T22:11:25.504905Z              
+   Percentage of cloud cover: 0.219867              
+   Percentage of pixels with missing data 0.003417
+Done, running time: 0:00:09.206837 
 
 Calculating mean NDVI values...
-Done, running time: 0:00:00.256659
+Done, running time: 0:00:00.178258 
 ```
 
 Function output; 
 
-|   | id | geometry                      | mean_NDVI |
-|---|----|-------------------------------|-----------|
-| 0 | 1  | POINT (388644.249 392861.634) | 0.260     |
-| 1 | 2  | POINT (385981.911 393805.494) | 0.218     |
-| 2 | 3  | POINT (388631.230 395322.181) | 0.283     |
+|   | geometry                      | id | mean_NDVI |
+|--:|-------------------------------|----|-----------|
+| 0 | POINT (118883.345 485054.641) | 1  | 0.080     |
+| 1 | POINT (118246.855 488082.089) | 2  | 0.110     |
+| 2 | POINT (122483.550 487728.517) | 3  | 0.028     |
 
 ### **get_landcover_percentages**
 This function calculates the percentage of area that is covered by each landcover class for an area of interest. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
 
 Additionally, users may provide a raster file with landcover class values. If not provided, esa-worldcover data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the landcover class raster. The landcover class raster which was created for the three locations of the example data is included in the following figure;
 
-![Landcover raster](Plots/landcover.png)
+![Landcover raster](Plots/landcover.png) 
+<br>where:
+
+| 10         | 20        | 30        | 40       | 50       | 60                       | 70           | 80                     | 90                 | 95        | 100             |
+|------------|-----------|-----------|----------|----------|--------------------------|--------------|------------------------|--------------------|-----------|-----------------|
+| Tree cover | Shrubland | Grassland | Cropland | Built-up | Bare / sparse vegetation | Snow and ice | Permanent water bodies | Herbaceous wetland | Mangroves | Moss and lichen |
 
 Now, the percentage of landcover class values for the designated areas can be calculated by applying the following code;
 
 ```python
-availability.get_landcover_percentages(point_of_interest_file=path+"Test_multiple_home_locations.gpkg",
+availability.get_landcover_percentages(point_of_interest_file=path+"AMS_example_data.gpkg",
                                        buffer_dist=500,
                                        buffer_type="euclidean",
                                        save_lulc=False,
@@ -119,19 +124,20 @@ Retrieving landcover class raster through planetary computer...
 Information on the land cover image retrieved from planetary computer:              
    Image description: ESA WorldCover product at 10m resolution              
    Image timeframe: 2021-01-01T00:00:00Z - 2021-12-31T23:59:59Z
-Done, running time: 0:00:06.839267 
+Done, running time: 0:00:02.506165 
 
 Calculating landcover class percentages...
-Done, running time: 0:00:00.835802 
+Done, running time: 0:00:00.509130  
 ```
 
 Function output;
 
-|   | id | geometry                      | 0       | Tree cover | Grassland | Built-up | Bare / sparse vegetation |
-|---|----|-------------------------------|---------|------------|-----------|----------|--------------------------|
-| 0 | 1  | POINT (388644.249 392861.634) | 21.872% | 24.885%    | 7.215%    | 46.024%  | 0.004%                   |
-| 1 | 2  | POINT (385981.911 393805.494) | 21.369% | 24.38%     | 5.704%    | 48.547%  | NaN                      |
-| 2 | 3  | POINT (388631.230 395322.181) | 21.872% | 20.881%    | 13.824%   | 43.415%  | 0.009%                   |
+| x | geometry                      | id | 0       | Tree cover | Grassland | Built-up | Bare / sparse vegetation | Permanent water bodies | Cropland |
+|--:|-------------------------------|----|---------|------------|-----------|----------|--------------------------|------------------------|----------|
+| 0 | POINT (118883.345 485054.641) | 1  | 21.843% | 21.37%     | 0.771%    | 53.247%  | 0.013%                   | 2.757%                 | NaN      |
+| 1 | POINT (118246.855 488082.089) | 2  | 21.302% | 18.135%    | 1.687%    | 57.813%  | 0.114%                   | 0.928%                 | 0.021%   |
+| 2 | POINT (122483.550 487728.517) | 3  | 21.357% | 2.091%     | 0.514%    | 40.361%  | 0.034%                   | 35.643%                | NaN      |
+
 
 ### **get_canopy_percentage**
 This function calculates the percentage of area that is covered by tree canopy. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). Also, a tree canopy vector file should be provided which solely contains polygon or multipolygon geometries since areas cannot be calculated from point geometries.
@@ -172,7 +178,7 @@ Additionally, users may provide a vector file which contains park geometries. Th
 
 The following figure illustrates the parks that have been extracted through OpenStreetMap, including the three point locations of the example_data and a 15-min walking distance network buffer for each;
 
-![Park areas](Plots/park_area.png)
+<iframe src="Plots/park_avail.html" height="500" width="100%"></iframe>
 
 The percentage of area that is covered by parks can be calculated by applying the following code;
 
