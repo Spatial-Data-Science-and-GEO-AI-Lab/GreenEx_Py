@@ -149,7 +149,14 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
     start_calc = time()
-    poi[[f'park_within_{target_dist}m', 'distance_to_park']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, distance_type=distance_type, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
+    poi[[f'park_within_{target_dist}m', 'distance_to_park', 'dest_geometries']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, distance_type=distance_type, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
+    try:
+        # Create geodataframe containing all point geometries considered for distance calculation
+        park_dest_geometries = gpd.GeoDataFrame(geometry=poi.explode('dest_geometries')['dest_geometries'], crs=f"EPSG:{epsg}")
+    except:
+        park_dest_geometries = None
+    # Drop irrelevant column from poi dataframe
+    poi.drop('dest_geometries', axis=1, inplace=True)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -174,21 +181,33 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
         folium.GeoJson(poi.to_crs("EPSG:4326"),
-                    name="PoI",
-                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names)).add_to(map)
+                       name="PoI",
+                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names)).add_to(map)
         folium.GeoJson(poi.buffer(target_dist).to_crs("EPSG:4326"),
-                    name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+                       name="Buffer zones",
+                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
         # Drop centroid column for plot purposes
         if destination == "centroids":
             park_src.drop('centroid', axis=1, inplace=True)
         folium.GeoJson(park_src.to_crs("EPSG:4326"),
-                    name="Parks from OSM",
-                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+                       name="Parks from OSM",
+                       style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+        # Plot park destination points
+        if park_dest_geometries is not None:
+            feature_group = folium.FeatureGroup(name='Park destination points')
+            for idx, row in park_dest_geometries.to_crs("EPSG:4326").iterrows():
+                geometry = row.geometry
+                marker = folium.Marker(
+                    location=[geometry.y, geometry.x],
+                    icon=folium.Icon(color='red', icon='map-pin', prefix='fa')
+                )
+                # Add the marker to the map
+                marker.add_to(feature_group)
+            feature_group.add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
-        map_title = f'Parks and buffer zones used for {distance_type} distance calculation'
+        map_title = f'Parks, destination points and buffer zones used for {distance_type} distance calculation'
         map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
         # Display map
         display(map)
@@ -273,6 +292,15 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
             except:
                 min_distance = np.nan
 
+    # Store geometries considered for distance calculation
+    try:
+        if destination == "centroids":
+            dest_geometries = park_src_buffer['centroid'].to_list()
+        else:
+            dest_geometries = [sg.Point(pos[node]) for nodes in park_boundary_nodes.values() for node in nodes]
+    except:
+        dest_geometries = []
+
     ### Step 6: Define result, if minimum distance smaller than/equal to target distance threshold --> Good
     if min_distance <= target_dist:
         outcome = "True"
@@ -283,4 +311,4 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         min_distance = target_dist
         print(f"Warning: no park {destination} could be detected within {distance_type} distance of {target_dist}m for PoI with id {df_row.id}, distance_to_park is therefore set to target distance. Consider for further analysis.")
     
-    return outcome, min_distance
+    return outcome, min_distance, dest_geometries
