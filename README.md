@@ -258,7 +258,7 @@ Done, running time: 0:00:00.118264
 
 In the figure below, the PoIs and their buffer zones are plotted in blue, the park centroids (destination points) in red and the parks in green. Note that only destination points are created for parks that intersect the PoI buffer zones;
 
-![Park accessibility](Plots/parks_access.png)
+![Park accessibility](Plots/parks_access.PNG)
 
 Function output;
 
