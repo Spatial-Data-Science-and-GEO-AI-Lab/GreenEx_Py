@@ -43,6 +43,8 @@ The resulting geodataframe contains three locations in Amsterdam (The Netherland
 | 1 | POINT (118246.855 488082.089) |
 | 2 | POINT (122483.550 487728.517) |
 
+Note that all example data files which are being used for the examples below, as well as additional test data, are available in the [TestData](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/TestData) folder.
+
 For a more detailed overview of the function arguments, requirements and output, please look into the [documentation](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Documentation) section of the module.
 
 ## *Availability*
@@ -178,7 +180,7 @@ Additionally, users may provide a vector file which contains park geometries. Th
 4. The area is likely to contain trees, grass and/or greenery
 5. The area can reasonable be used for walking or recreational activities
 
-The following figure illustrates the parks that have been extracted through OpenStreetMap (green), including the three point locations of the example_data and a 15-min walking distance network buffer for each (black);
+The following figure illustrates the parks that have been extracted through OpenStreetMap (green), including the three point locations of the example_data and a 15-min walking distance network buffer for each (blue);
 
 ![Park areas](Plots/parks_avail.png)
 
@@ -231,38 +233,40 @@ Additionally, users should define the following;
 The parks will again be extracted through [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/) using the same requirements as mentioned before and indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility).
 
 Consider the point locations as given in the example data and the following scenario parameters; <br>
-- Target distance: 500
+- Target distance: 300
 - Distance type: Euclidean
-- Destination: Entrance
-- Network type: walk
+- Destination: Centroids
+- Minimum park area: 400
 
 The function can be applied as follows;
 ```python
 accessibility.get_shortest_distance_park(point_of_interest_file=path+"AMS_example_data.gpkg",
-                                         target_dist=500,
+                                         target_dist=300,
                                          distance_type='euclidean',
-                                         destination='entrance',
+                                         destination='centroids',
+                                         min_park_area=400,
                                          plot_aoi=False,
                                          write_to_file=False)
 
 # Information provided while function was running
-Retrieving parks within total bounds of point(s) of interest, extended by a 750.0m buffer to account for edge effects...
-Done, running time: 0:00:21.280659 
-
-Retrieving infrastructure network within total bounds of point(s) of interest, extended by a 750.0m buffer to account for edge effects...
-Done, running time: 0:01:16.104272 
+Retrieving parks within total bounds of point(s) of interest, extended by a 450.0m buffer to account for edge effects...
+Done, running time: 0:00:00.812202 
 
 Calculating shortest distances...
-Done, running time: 0:00:14.851282 
+Done, running time: 0:00:00.118264 
 ```
+
+In the figure below, the PoIs and their buffer zones are plotted in blue, the park centroids (destination points) in red and the parks in green. Note that only destination points are created for parks that intersect the PoI buffer zones;
+
+![Park accessibility](Plots/parks_access.png)
 
 Function output;
 
-|   | geometry                      | id | park_within_500m | distance_to_park |
+|   | geometry                      | id | park_within_300m | distance_to_park |
 |---|-------------------------------|----|------------------|------------------|
-| 0 | POINT (118883.345 485054.641) | 1  | True             | 259.0            |
-| 1 | POINT (118246.855 488082.089) | 2  | True             | 161.0            |
-| 2 | POINT (122483.550 487728.517) | 3  | True             | 150.0            |
+| 0 | POINT (118883.345 485054.641) | 1  | True             | 292.0            |
+| 1 | POINT (118246.855 488082.089) | 2  | True             | 177.0            |
+| 2 | POINT (122483.550 487728.517) | 3  | True             | 135.0            |
 
 The function returns a boolean value indicating whether at least one park is within the target distance. Additionally, it provides the distance in meters if within the threshold distance. 
 
