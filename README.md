@@ -1,4 +1,7 @@
-# GreenEx_Py
+# GreenEx_Py: Greenness Exposure Assessment in Python
+
+# Aim and objectives
+The aim of this...
 
 # Table of Contents
 
@@ -424,3 +427,6 @@ The function returns the average GVI value as well as the number of sample road 
 - Computing sample road locations from network: [Ondrej Mlynarcik](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb)
 - Creation of network buffer isochrones: [Geoff Boeing](https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb)
 - Suitable Urban Greenspaces to represent park areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
+
+## Acknowledgements and contact
+Email:
