@@ -1,7 +1,7 @@
 # GreenEx_Py: Greenness Exposure Assessment in Python
 
 # Aim and objectives
-The aim of this...
+The aim of this package is to provide researchers with an open-source and user-friendly tool that may facilitate analyses concerning the ecological and societal effects of greenspace exposure, among others, in a robust and transparent way. 
 
 # Table of Contents
 
@@ -236,10 +236,10 @@ Additionally, users should define the following;
 The parks will again be extracted through [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/) using the same requirements as mentioned before and indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility).
 
 Consider the point locations as given in the example data and the following scenario parameters; <br>
-- Target distance: 300
+- Target distance: 300m
 - Distance type: Euclidean
 - Destination: Centroids
-- Minimum park area: 400
+- Minimum park area: 400m<sup>2</sup>
 
 The function can be applied as follows;
 ```python
@@ -429,4 +429,5 @@ The function returns the average GVI value as well as the number of sample road 
 - Suitable Urban Greenspaces to represent park areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
 
 ## Acknowledgements and contact
-Email:
+Name: Yúri Grings <br>
+Email: y.n.f.grings@students.uu.nl
