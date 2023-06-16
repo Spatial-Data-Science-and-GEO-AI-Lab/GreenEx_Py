@@ -1,8 +1,8 @@
 **get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidian", destination="centroids", network_type=None, min_park_area=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
 
-> Assess whether or not parks are located within a threshold network distance for points of interest.
+> Assess whether or not parks are located within a threshold distance for points of interest.
 
-> Function to calculate the shortest network distance from point locations to parks. The park destination points can be set to either "centroids" or "entrance". The network distance will be calculated from the point location's nearest network node to the network nodes which are within 20 meters of the park boundaries - also referred to as fake park entry points. The euclidian distance between the point location and the nearest network node will be added to minimize the error rate. In case of destination = "centroids", the euclidian distance between the park's fake entry points and the park's centroid will also be considered.
+> Function to calculate the shortest distance from point locations to parks in a euclidean or network manner. The park destination points can be set to either "centroids" or "entrance". If "entrance", the distance will be calculated from the point location to the network nodes which are within 20 meters of the park boundaries - also referred to as fake park entry points. 
 
 >> Parameters: 
 
