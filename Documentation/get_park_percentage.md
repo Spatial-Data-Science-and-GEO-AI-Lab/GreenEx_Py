@@ -8,7 +8,7 @@
 
 >> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries around and for which to compute the percentage of park cover.
 
->> - park_vector_file *(string)* – optional, the absolute or relative path to the vector file containing tree canopy data. Note that geometries should be polygon or multipolygon. In case no file is provided, park data will be retrieved from OpenStreetMap.
+>> - park_vector_file *(string)* – optional, the absolute or relative path to the vector file containing park data. Note that geometries should be polygon or multipolygon. In case no file is provided, park data will be retrieved from OpenStreetMap.
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default.
 
