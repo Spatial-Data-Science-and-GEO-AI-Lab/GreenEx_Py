@@ -149,29 +149,33 @@ Function output;
 ### **get_canopy_percentage**
 This function calculates the percentage of area that is covered by tree canopy. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). Also, a tree canopy vector file should be provided which solely contains polygon or multipolygon geometries since areas cannot be calculated from point geometries.
 
-A suitable tree canopy file is illustrated using the following figure;
-
-![Tree canopy](Plots/tree_canopy.png)
-
 The percentage of area that is covered by tree canopy can be calculated by applying the following code;
 
 ```python
-availability.get_canopy_percentage(point_of_interest_file=path+"Test_single_home_location.gpkg",
-                                   canopy_vector_file=test_path+"Canopy_single_home_500m.gpkg",
+availability.get_canopy_percentage(point_of_interest_file=path+"AMS_canopy_example.gpkg",
+                                   canopy_vector_file=test_path+"AMS_canopy_segment.gpkg",
                                    buffer_type="euclidean",
                                    buffer_dist=250,
                                    write_to_file=False)
 
 # Information provided while function was running
+Adjusting CRS of Greenspace file to match with Point of Interest CRS...
+Done 
+
 Calculating percentage of tree canopy coverage...
-Done, running time: 0:00:00.181916 
+Done, running time: 0:00:00.813638 
 ```
+
+Note that different testdata was used for this example due to the limited availability of tree canopy data.
+The data used looks as follows;
+
+![Tree canopy](Plots/canopy.PNG) 
 
 Function output;
 
-|   | id | geometry                      | canopy_cover |
-|---|----|-------------------------------|--------------|
-| 0 | 1  | POINT (387164.991 394443.414) | 23.66%       |
+|   | geometry                      | id | canopy_cover |
+|---|-------------------------------|----|--------------|
+| 0 | POINT (122906.402 487497.569) | 1  | 12.31%       |
 
 ### **get_park_percentage**
 This function calculates the percentage of area that is covered by parks. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). 
