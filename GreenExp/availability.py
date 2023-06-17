@@ -808,7 +808,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
 
     return poi
 
-def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
                         buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True, write_to_file=True, 
                         output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
@@ -897,49 +897,49 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
     # Extract polygon in EPSG 4326 
     wgs_polygon = polygon_gdf_wgs['geometry'].values[0] 
 
-    ### Step 2: Read park data, retrieve from OSM if not provided by user
-    if park_vector_file is None:
-        print(f"Retrieving parks within total bounds of {geom_type}(s) of interest, extended by buffer distance if specified...")
-        start_park_retrieval = time()
+    ### Step 2: Read greenspace data, retrieve from OSM if not provided by user
+    if greenspace_vector_file is None:
+        print(f"Retrieving greenspaces within total bounds of {geom_type}(s) of interest, extended by buffer distance if specified...")
+        start_greenspace_retrieval = time()
         # Tags seen as Urban Greenspace (UGS) require the following:
         # 1. Tag represent an area
         # 2. The area is outdoor
         # 3. The area is (semi-)publically available
         # 4. The area is likely to contain trees, grass and/or greenery
         # 5. The area can reasonable be used for walking or recreational activities
-        park_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
-        # Extract parks from OpenStreetMap
-        park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
+        greenspace_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
+        # Extract greenspaces from OpenStreetMap
+        greenspace_src = ox.geometries_from_polygon(wgs_polygon, tags=greenspace_tags)
         # Change CRS to the same one as poi file
-        park_src.to_crs(f"EPSG:{epsg}", inplace=True)
+        greenspace_src.to_crs(f"EPSG:{epsg}", inplace=True)
         # Create a boolean mask to filter out polygons and multipolygons
-        polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
+        polygon_mask = greenspace_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
         # Filter the GeoDataFrame to keep only polygons and multipolygons
-        park_src = park_src.loc[polygon_mask]
-        end_park_retrieval = time()
-        elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
-        print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
+        greenspace_src = greenspace_src.loc[polygon_mask]
+        end_greenspace_retrieval = time()
+        elapsed_greenspace_retrieval = end_greenspace_retrieval - start_greenspace_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_greenspace_retrieval))} \n")
     else:
-        park_src = gpd.read_file(park_vector_file)
+        greenspace_src = gpd.read_file(greenspace_vector_file)
         # Make sure geometries are all polygons or multipolygons as areas should be calculated
-        if not (park_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
-            raise ValueError("Please make sure all geometries of the park file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
+        if not (greenspace_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
+            raise ValueError("Please make sure all geometries of the greenspace file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
         
-        # Make sure CRS of park file is same as CRS of poi file
-        if not park_src.crs.to_epsg() == epsg:
-            print("Adjusting CRS of Greenspace file to match with Point of Interest CRS...")
-            park_src.to_crs(f'EPSG:{epsg}', inplace=True)
+        # Make sure CRS of greenspace file is same as CRS of poi file
+        if not greenspace_src.crs.to_epsg() == epsg:
+            print("Adjusting CRS of greenspace file to match with Point of Interest CRS...")
+            greenspace_src.to_crs(f'EPSG:{epsg}', inplace=True)
             print("Done \n")
 
-        # Make sure all points of interest are within or do at least intersect (in case of polygons) the park file provided
-        if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
+        # Make sure all points of interest are within or do at least intersect (in case of polygons) the greenspace file provided
+        if not all(geom.within(sg.box(*greenspace_src.total_bounds)) for geom in poi['geometry']):
             if geom_type == "Point":
-                raise ValueError("Not all points of interest are within the park file provided, please make sure they are and re-run the function")
+                raise ValueError("Not all points of interest are within the greenspace file provided, please make sure they are and re-run the function")
             else:
-                if not all(geom.intersects(sg.box(*park_src.total_bounds)) for geom in poi['geometry']):
-                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the park file provided, please make sure they are/do and re-run the function")
+                if not all(geom.intersects(sg.box(*greenspace_src.total_bounds)) for geom in poi['geometry']):
+                    raise ValueError("Not all polygons of interest are within, or do at least partly intersect, with the area covered by the greenspace file provided, please make sure they are/do and re-run the function")
                 else:
-                    print("Warning: Not all polygons of interest are completely within the area covered by the park file provided, results will be based on intersecting part of polygons involved \n")
+                    print("Warning: Not all polygons of interest are completely within the area covered by the greenspace file provided, results will be based on intersecting part of polygons involved \n")
 
     ### Step 3: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
@@ -995,17 +995,17 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
             print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")  
 
     ### Step 4: Perform calculations and write results to file
-    print("Calculating percentage of park area coverage...")
+    print("Calculating percentage of greenspace area coverage...")
     start_calc = time()
     # Check whether areas of interest were succesfully created for all PoIs
     if not all(geom is not None for geom in aoi_gdf['geometry']):
         print(f"Warning: Buffer zones could not be created for all {geom_type}s of Interest based on the current argument values, resulting in missing values for the mean NDVI")
-    # Check whether areas of interest, created in previous steps, are fully covered by the park bounds, provide warning if not
-    if not all(geom.within(sg.box(*park_src.total_bounds)) for geom in aoi_gdf['geometry'] if geom is not None):
-        print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the park file, note that results will be based on the intersecting part of the buffer zone")
+    # Check whether areas of interest, created in previous steps, are fully covered by the greenspace bounds, provide warning if not
+    if not all(geom.within(sg.box(*greenspace_src.total_bounds)) for geom in aoi_gdf['geometry'] if geom is not None):
+        print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the greenspace file, note that results will be based on the intersecting part of the buffer zone")
 
-    # Calculate percentage of park area cover   
-    poi['park_cover'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else str(((park_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
+    # Calculate percentage of greenspace area cover   
+    poi['greenspace_cover'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else str(((greenspace_src.clip(row.geometry).area.sum()/row.geometry.area)*100).round(2))+'%', axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")
@@ -1017,7 +1017,7 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
             os.makedirs(output_dir)
         # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_ParkPerc_added.gpkg"), driver="GPKG")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_GreenspacePerc_added.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
@@ -1033,16 +1033,16 @@ def get_park_percentage(point_of_interest_file, park_vector_file=None, crs_epsg=
                     name="PoI",
                     tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
                     style_function=lambda feature: {'color': 'black'}).add_to(map)
-        folium.GeoJson(park_src.to_crs("EPSG:4326"),
-                    name="Parks",
+        folium.GeoJson(greenspace_src.to_crs("EPSG:4326"),
+                    name="Greenspaces",
                     style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
         folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
                     name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
-        map_title = 'Areas of interest used for park cover percentage calculation'
+        map_title = 'Areas of interest used for greenspace cover percentage calculation'
         map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
         # Display map
         display(map)

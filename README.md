@@ -11,9 +11,9 @@ The aim of this package is to provide researchers with an open-source and user-f
         - [Mean NDVI](#get_mean_NDVI)
         - [Percentages for land cover classes](#get_landcover_percentages)
         - [Percentage of canopy coverage](#get_canopy_percentage)
-        - [Percentage of park area coverage](#get_park_percentage)
+        - [Percentage of greenspace area coverage](#get_greenspace_percentage)
     - [Accessibility](#Accessibility)
-        - [Shortest distance to park](#get_shortest_distance_park)
+        - [Shortest distance to greenspace](#get_shortest_distance_greenspace)
     - [Visibility](#Visibility)
         - [Streetview GVI](#get_streetview_GVI)
         - [Viewshed GVI](#get_viewshed_GVI)
@@ -51,7 +51,7 @@ Note that all example data files which are being used for the examples below, as
 For a more detailed overview of the function arguments, requirements and output, please look into the [documentation](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Documentation) section of the module.
 
 ## *Availability*
-Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_park_percentage](#get_park_percentage). 
+Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_greenspace_percentage](#get_greenspace_percentage). 
 <br><br>
 All functions will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved. These values are based on an area of interest (AoI) which can be composed in three distinct ways;
 
@@ -177,105 +177,105 @@ Function output;
 |---|-------------------------------|----|--------------|
 | 0 | POINT (122906.402 487497.569) | 1  | 12.31%       |
 
-### **get_park_percentage**
-This function calculates the percentage of area that is covered by parks. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). 
+### **get_greenspace_percentage**
+This function calculates the percentage of area that is covered by greenspaces. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). 
 
-Additionally, users may provide a vector file which contains park geometries. These geometries should solely come in polygon/multipolygon format since areas cannot be calculated from point geometries. If the file is not provided, parks will be extracted from [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/). Suitable Urban Greenspaces meet the following requirements, as indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility):
+Additionally, users may provide a vector file which contains greenspace geometries. These geometries should solely come in polygon/multipolygon format since areas cannot be calculated from point geometries. If the file is not provided, greenspaces will be extracted from [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/). Suitable Urban Greenspaces meet the following requirements, as indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility):
 1. Tags represent an area
 2. The area is outdoor
 3. The area is (semi-)publically available
 4. The area is likely to contain trees, grass and/or greenery
 5. The area can reasonable be used for walking or recreational activities
 
-The following figure illustrates the parks that have been extracted through OpenStreetMap (green), including the three point locations of the example_data and a 15-min walking distance network buffer for each (blue);
+The following figure illustrates the greenspaces that have been extracted through OpenStreetMap (green), including the three point locations of the example_data and a 15-min walking distance network buffer for each (blue);
 
-![Park areas](Plots/parks_avail.png)
+![greenspace areas](Plots/greenspaces_avail.png)
 
-The percentage of area that is covered by parks can be calculated by applying the following code;
+The percentage of area that is covered by greenspaces can be calculated by applying the following code;
 
 ```python
-availability.get_park_percentage(point_of_interest_file=path+"AMS_example_data.gpkg",
-                                 buffer_type="network",
-                                 travel_speed=5,
-                                 trip_time=15,
-                                 network_type="walk",
-                                 write_to_file=False)
+availability.get_greenspace_percentage(point_of_interest_file=path+"AMS_example_data.gpkg",
+                                       buffer_type="network",
+                                       travel_speed=5,
+                                       trip_time=15,
+                                       network_type="walk",
+                                       write_to_file=False)
 
 # Information provided while function was running
-Retrieving parks within total bounds of Point(s) of interest, extended by buffer distance if specified...
-Done, running time: 0:00:04.991364 
+Retrieving greenspaces within total bounds of Point(s) of interest, extended by buffer distance if specified...
+Done, running time: 0:00:09.669733 
 
 Retrieving network within total bounds of Point(s) of interest, extended by buffer distance as specified...
-Done, running time: 0:01:32.496219 
+Done, running time: 0:00:44.845513 
 
 Retrieving isochrone for point(s) of interest: 100%
-3/3 [00:35<00:00, 11.74s/it]
+3/3 [00:17<00:00, 5.31s/it]
 Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb 
 
-Calculating percentage of park area coverage...
-Done, running time: 0:00:00.762194 
+Calculating percentage of greenspace area coverage...
+Done, running time: 0:00:00.597858 
 ```
 
 Function output;
 
-|   | geometry                      | id | park_cover |
-|---|-------------------------------|----|------------|
-| 0 | POINT (118883.345 485054.641) | 1  | 21.34%     |
-| 1 | POINT (118246.855 488082.089) | 2  | 13.38%     |
-| 2 | POINT (122483.550 487728.517) | 3  | 1.14%      |
+|   | geometry                      | id | greenspace_cover |
+|---|-------------------------------|----|------------------|
+| 0 | POINT (118883.345 485054.641) | 1  | 21.34%           |
+| 1 | POINT (118246.855 488082.089) | 2  | 13.38%           |
+| 2 | POINT (122483.550 487728.517) | 3  | 1.14%            |
 
 ## *Accessibility*
-Greenspace accessibility is currently measured using one function; [get_shortest_distance_park](#get_shortest_distance_park). 
+Greenspace accessibility is currently measured using one function; [get_shortest_distance_greenspace](#get_shortest_distance_greenspace). 
 <br><br>
 The function will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved.
 
-### **get_shortest_distance_park**
-This function returns information on the presence of parks within a certain threshold distance of address locations. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+### **get_shortest_distance_greenspace**
+This function returns information on the presence of greenspaces within a certain threshold distance of address locations. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
 
 Additionally, users should define the following;
 1. The threshold (target) distance to consider (meters)
 2. Distance type, i.e. the way in which to consider the target distance; euclidean or network
-3. The parks' destination points; entrance or centroids. If set to entrance, fake park entry points will be created by computing a buffer of 20m around the park polygons and intersecting this buffer zone with the road network. The points of intersection will then serve as fake entry points. NOTE: this requires the network to be extracted, even if distance type is set to euclidean. If set to centroids, the distance to the park's center point will be calculated.
+3. The greenspaces' destination points; entrance or centroids. If set to entrance, fake greenspace entry points will be created by computing a buffer of 20m around the greenspace polygons and intersecting this buffer zone with the road network. The points of intersection will then serve as fake entry points. NOTE: this requires the network to be extracted, even if distance type is set to euclidean. If set to centroids, the distance to the greenspace's center point will be calculated.
 
-The parks will again be extracted through [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/) using the same requirements as mentioned before and indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility).
+The greenspaces will again be extracted through [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/) using the same requirements as mentioned before and indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility).
 
 Consider the point locations as given in the example data and the following scenario parameters; <br>
 - Target distance: 300m
 - Distance type: Euclidean
 - Destination: Centroids
-- Minimum park area: 400m<sup>2</sup>
+- Minimum greenspace area: 400m<sup>2</sup>
 
 The function can be applied as follows;
 ```python
-accessibility.get_shortest_distance_park(point_of_interest_file=path+"AMS_example_data.gpkg",
-                                         target_dist=300,
-                                         distance_type='euclidean',
-                                         destination='centroids',
-                                         min_park_area=400,
-                                         write_to_file=False)
+accessibility.get_shortest_distance_greenspace(point_of_interest_file=path+"AMS_example_data.gpkg",
+                                               target_dist=300,
+                                               distance_type='euclidean',
+                                               destination='centroids',
+                                               min_greenspace_area=400,
+                                               write_to_file=False)
 
 # Information provided while function was running
-Retrieving parks within total bounds of point(s) of interest, extended by a 450.0m buffer to account for edge effects...
-Done, running time: 0:00:09.116234 
+Retrieving greenspaces within total bounds of point(s) of interest, extended by a 450.0m buffer to account for edge effects...
+Done, running time: 0:00:08.386876 
 
 Calculating shortest distances...
-Warning: no park centroids could be detected within euclidean distance of 300m for PoI with id 1, distance_to_park is therefore set to target distance. Consider for further analysis.
-Done, running time: 0:00:00.124219 
+Warning: no greenspace centroids could be detected within euclidean distance of 300m for PoI with id 1, distance_to_greenspace is therefore set to target distance. Consider for further analysis.
+Done, running time: 0:00:00.162571 
 ```
 
-In the figure below, the PoIs and their buffer zones are plotted in blue, the park centroids (destination points) in red and the parks in green. Note that only destination points are created for parks that intersect the PoI buffer zones;
+In the figure below, the PoIs and their buffer zones are plotted in blue, the greenspace centroids (destination points) in red and the greenspaces in green. Note that only destination points are created for greenspaces that intersect the PoI buffer zones;
 
-![Park accessibility](Plots/parks_access.PNG)
+![greenspace accessibility](Plots/greenspaces_access.PNG)
 
 Function output;
 
-|   | geometry                      | id | park_within_300m | distance_to_park |
-|---|-------------------------------|----|------------------|------------------|
-| 0 | POINT (118883.345 485054.641) | 1  | False            | 300.0            |
-| 1 | POINT (118246.855 488082.089) | 2  | True             | 177.0            |
-| 2 | POINT (122483.550 487728.517) | 3  | True             | 135.0            |
+|   | geometry                      | id | greenspace_within_300m | distance_to_greenspace |
+|---|-------------------------------|----|------------------------|------------------------|
+| 0 | POINT (118883.345 485054.641) | 1  | False                  | 300.0                  |
+| 1 | POINT (118246.855 488082.089) | 2  | True                   | 177.0                  |
+| 2 | POINT (122483.550 487728.517) | 3  | True                   | 135.0                  |
 
-The function returns a boolean value indicating whether at least one park is within the target distance. Additionally, it provides the distance in meters if within the threshold distance. 
+The function returns a boolean value indicating whether at least one greenspace is within the target distance. Additionally, it provides the distance in meters if within the threshold distance. 
 
 ## *Visibility*
 Greenspace visibility is measured using two functions; [get_streetview_GVI](#get_streetview_GVI) and [get_viewshed_GVI](#get_viewshed_GVI). 
@@ -430,7 +430,7 @@ The function returns the average GVI value as well as the number of sample road 
 - Retrieving images for Streetview GVI: [Mapillary](https://www.mapillary.com/?locale=en_US)
 - Computing sample road locations from network: [Ondrej Mlynarcik](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb)
 - Creation of network buffer isochrones: [Geoff Boeing](https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb)
-- Suitable Urban Greenspaces to represent park areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
+- Suitable Urban Greenspaces to represent greenspace areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
 
 ## Acknowledgements and contact
 Name: Yúri Grings <br>

@@ -21,9 +21,9 @@ from datetime import timedelta
 from IPython.display import display
 
 ##### MAIN FUNCTIONS
-def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dist=300, park_vector_file=None, distance_type="euclidean",
-                               destination="centroids", network_type="all", min_park_area=None, plot_aoi=True, write_to_file=True, 
-                               output_dir=os.getcwd()):
+def get_shortest_distance_greenspace(point_of_interest_file, crs_epsg=None, target_dist=300, greenspace_vector_file=None, distance_type="euclidean",
+                                     destination="centroids", network_type="all", min_greenspace_area=None, plot_aoi=True, write_to_file=True, 
+                                     output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
@@ -74,10 +74,10 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     if destination not in ["centroids", "entrance"]:
         raise TypeError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
 
-    # Make sure min_park_area has valid value
-    if min_park_area is not None:
-        if not isinstance(min_park_area, int) or (not min_park_area > 0):
-            raise TypeError("Please make sure that the min_park_area is set as a positive integer")
+    # Make sure min_greenspace_area has valid value
+    if min_greenspace_area is not None:
+        if not isinstance(min_greenspace_area, int) or (not min_greenspace_area > 0):
+            raise TypeError("Please make sure that the min_greenspace_area is set as a positive integer")
 
     ### Step 2: Obtain bounding box in which all points of interest are located, including target_dist + 50% buffer to account for edge effects
     poi_polygon = sg.box(*poi.total_bounds).buffer(target_dist*1.5)
@@ -86,47 +86,52 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     # Extract polygon in EPSG 4326
     wgs_polygon = polygon_gdf_wgs['geometry'].values[0] 
 
-    ### Step 3: Read park polygons, retrieve from OSM if not provided by user 
-    if park_vector_file is not None:
-        park_src = gpd.read_file(park_vector_file)
-        # Make sure CRS of park file is same as CRS of poi file
-        if not park_src.crs.to_epsg() == epsg:
-            print("Adjusting CRS of Park file to match with Point of Interest CRS...")
-            park_src.to_crs(f'EPSG:{epsg}', inplace=True)
+    ### Step 3: Read greenspace polygons, retrieve from OSM if not provided by user 
+    if greenspace_vector_file is not None:
+        greenspace_src = gpd.read_file(greenspace_vector_file)
+        # Make sure CRS of greenspace file is same as CRS of poi file
+        if not greenspace_src.crs.to_epsg() == epsg:
+            print("Adjusting CRS of greenspace file to match with Point of Interest CRS...")
+            greenspace_src.to_crs(f'EPSG:{epsg}', inplace=True)
             print("Done \n")
     else:
-        print(f"Retrieving parks within total bounds of point(s) of interest, extended by a {target_dist*1.5}m buffer to account for edge effects...")
-        start_park_retrieval = time()
+        print(f"Retrieving greenspaces within total bounds of point(s) of interest, extended by a {target_dist*1.5}m buffer to account for edge effects...")
+        start_greenspace_retrieval = time()
         # Tags seen as Urban Greenspace (UGS) require the following:
         # 1. Tag represent an area
         # 2. The area is outdoor
         # 3. The area is (semi-)publically available
         # 4. The area is likely to contain trees, grass and/or greenery
         # 5. The area can reasonable be used for walking or recreational activities
-        park_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
-        # Extract parks from OpenStreetMap
-        park_src = ox.geometries_from_polygon(wgs_polygon, tags=park_tags)
+        greenspace_tags = {'landuse':['allotments','forest','greenfield','village_green'], 'leisure':['garden','fitness_station','nature_reserve','park','playground'],'natural':'grassland'}
+        # Extract greenspaces from OpenStreetMap
+        greenspace_src = ox.geometries_from_polygon(wgs_polygon, tags=greenspace_tags)
         # Change CRS to CRS of poi file
-        park_src.to_crs(f"EPSG:{epsg}", inplace=True)
-        end_park_retrieval = time()
-        elapsed_park_retrieval = end_park_retrieval - start_park_retrieval
-        print(f"Done, running time: {str(timedelta(seconds=elapsed_park_retrieval))} \n")
+        greenspace_src.to_crs(f"EPSG:{epsg}", inplace=True)
+        end_greenspace_retrieval = time()
+        elapsed_greenspace_retrieval = end_greenspace_retrieval - start_greenspace_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_greenspace_retrieval))} \n")
     
     # Create a boolean mask to filter out polygons and multipolygons
-    polygon_mask = park_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
+    polygon_mask = greenspace_src['geometry'].apply(lambda geom: geom.geom_type in ['Polygon', 'MultiPolygon'])
     # Filter the GeoDataFrame to keep only polygons and multipolygons
-    park_src = park_src.loc[polygon_mask]
+    greenspace_src = greenspace_src.loc[polygon_mask]
 
-    # Maintain parks that have an area greater than or equal to min_park_area
-    if min_park_area is not None:
-        park_src = park_src[park_src.area >= min_park_area]
+    # merge the overlapping greenspace into one polygon
+    s_ = gpd.GeoDataFrame(geometry=[greenspace_src.unary_union], crs=f"EPSG:{epsg}").explode(index_parts=False).reset_index(drop=True)
+    s_ = gpd.sjoin(s_, greenspace_src, how='left')
+    greenspace_src = s_.dissolve(s_.index, aggfunc='first').reset_index(drop=True)
 
-    # Compute park centroids if destination argument set to centroids
+    # Maintain greenspaces that have an area greater than or equal to min_greenspace_area
+    if min_greenspace_area is not None:
+        greenspace_src = greenspace_src[greenspace_src.area >= min_greenspace_area]
+
+    # Compute greenspace centroids if destination argument set to centroids
     if destination == "centroids":
-        park_src['centroid'] = park_src['geometry'].centroid
+        greenspace_src['centroid'] = greenspace_src['geometry'].centroid
 
-    # Assign an id to all parks to identify them at later stage
-    park_src['park_id'] = list(range(len(park_src)))
+    # Assign an id to all greenspaces to identify them at later stage
+    greenspace_src['greenspace_id'] = list(range(len(greenspace_src)))
 
     ### Step 3: Retrieve network from OSM if distance type is network or destination is fake entrance points
     if distance_type == "network" or destination == "entrance":
@@ -149,12 +154,12 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     ### Step 4: Perform calculations and write results to file
     print("Calculating shortest distances...")
     start_calc = time()
-    poi[[f'park_within_{target_dist}m', 'distance_to_park', 'dest_geometries']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, distance_type=distance_type, network_graph=graph_projected, park_src=park_src, destination=destination)), axis=1)
+    poi[[f'greenspace_within_{target_dist}m', 'distance_to_greenspace', 'dest_geometries']] = poi.apply(lambda row: pd.Series(calculate_shortest_distance(df_row=row, target_dist=target_dist, distance_type=distance_type, network_graph=graph_projected, greenspace_src=greenspace_src, destination=destination)), axis=1)
     try:
         # Create geodataframe containing all point geometries considered for distance calculation
-        park_dest_geometries = gpd.GeoDataFrame(geometry=poi.explode('dest_geometries')['dest_geometries'], crs=f"EPSG:{epsg}")
+        greenspace_dest_geometries = gpd.GeoDataFrame(geometry=poi.explode('dest_geometries')['dest_geometries'], crs=f"EPSG:{epsg}")
     except:
-        park_dest_geometries = None
+        greenspace_dest_geometries = None
     # Drop irrelevant column from poi dataframe
     poi.drop('dest_geometries', axis=1, inplace=True)
     end_calc = time()
@@ -168,7 +173,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
             os.makedirs(output_dir)
         # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistPark_added.gpkg"), driver="GPKG")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistGreenspace_added.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
@@ -188,14 +193,14 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
                        style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
         # Drop centroid column for plot purposes
         if destination == "centroids":
-            park_src.drop('centroid', axis=1, inplace=True)
-        folium.GeoJson(park_src.to_crs("EPSG:4326"),
-                       name="Parks from OSM",
+            greenspace_src.drop('centroid', axis=1, inplace=True)
+        folium.GeoJson(greenspace_src.to_crs("EPSG:4326"),
+                       name="Greenspaces from OSM",
                        style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
-        # Plot park destination points
-        if park_dest_geometries is not None:
-            feature_group = folium.FeatureGroup(name='Park destination points')
-            for idx, row in park_dest_geometries.to_crs("EPSG:4326").iterrows():
+        # Plot greenspace destination points
+        if greenspace_dest_geometries is not None:
+            feature_group = folium.FeatureGroup(name='Greenspace destination points')
+            for idx, row in greenspace_dest_geometries.to_crs("EPSG:4326").iterrows():
                 geometry = row.geometry
                 marker = folium.Marker(
                     location=[geometry.y, geometry.x],
@@ -207,7 +212,7 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
-        map_title = f'Parks, destination points and buffer zones used for {distance_type} distance calculation'
+        map_title = f'Greenspaces, destination points and buffer zones used for {distance_type} distance calculation'
         map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
         # Display map
         display(map)
@@ -215,9 +220,9 @@ def get_shortest_distance_park(point_of_interest_file, crs_epsg=None, target_dis
     return poi
 
 ##### SUPPORTING FUNCTIONS
-def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=None, network_graph=None, park_src=None, destination=None):   
-    # Clip park boundaries to poi incl. buffer to minimize possible destination points
-    park_src_buffer = park_src.clip(df_row['geometry'].buffer(target_dist))
+def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=None, network_graph=None, greenspace_src=None, destination=None):   
+    # Clip greenspace boundaries to poi incl. buffer to minimize possible destination points
+    greenspace_src_buffer = greenspace_src.clip(df_row['geometry'].buffer(target_dist))
     
     # Evaluate distance type provided by user
     if distance_type == "network":
@@ -231,25 +236,25 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         # Create dictionary to extract geometries for nodes of interest
         pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
         
-        # For each park, retrieve the network nodes which are within 20m of the park boundary and store in dictionary (fake entry points)
-        park_boundary_nodes = {}
-        for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
+        # For each greenspace, retrieve the network nodes which are within 20m of the greenspace boundary and store in dictionary (fake entry points)
+        greenspace_boundary_nodes = {}
+        for greenspace_id, geom in zip(greenspace_src_buffer['greenspace_id'], greenspace_src_buffer['geometry']):
             boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
-            park_boundary_nodes[park_id] = boundary_nodes
+            greenspace_boundary_nodes[greenspace_id] = boundary_nodes
 
-        # Calculate the network distances between the house location's nearest node and the fake park entry points
+        # Calculate the network distances between the house location's nearest node and the fake greenspace entry points
         # Add penalty_home as defined before to network distance, as well as penalty_centroid in case user defined destination argument as "centroids"
         penalty_home = df_row['geometry'].distance(sg.Point(network_graph.nodes[nearest_node]['x'], network_graph.nodes[nearest_node]['y']))
         distances = {}
-        for park_id, boundary_nodes in park_boundary_nodes.items():
+        for greenspace_id, boundary_nodes in greenspace_boundary_nodes.items():
             for node in boundary_nodes:
                 try:
                     path = nx.shortest_path(subgraph, nearest_node, node, weight='length')
                     distance = sum(subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1))
                     
                     if destination == "centroids":
-                        # Calculate euclidean distance between the fake park entry points and the corresponding park's centroid to minimize distance error
-                        centroid = park_src_buffer.loc[park_src_buffer['park_id'] == park_id, 'centroid'].iloc[0]
+                        # Calculate euclidean distance between the fake greenspace entry points and the corresponding greenspace's centroid to minimize distance error
+                        centroid = greenspace_src_buffer.loc[greenspace_src_buffer['greenspace_id'] == greenspace_id, 'centroid'].iloc[0]
                         penalty_centroid = centroid.distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
                         distance += penalty_centroid
                     
@@ -258,17 +263,17 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
                 except:
                     continue
 
-        # Get the minimum distance (house location to park)
+        # Get the minimum distance (house location to greenspace)
         if distances:
             min_distance = round(min(distances.values()),0)
         else:
             min_distance = np.nan
     else:
-        # Calculate the euclidean distance between the house location and the nearest fake park entry point/park centroid
+        # Calculate the euclidean distance between the house location and the nearest fake greenspace entry point/greenspace centroid
         poi_coords = (df_row['geometry'].x, df_row['geometry'].y)
         if destination == "centroids": 
             try:
-                centroid_coordinates = [(geom.x, geom.y) for geom in park_src_buffer['centroid']]
+                centroid_coordinates = [(geom.x, geom.y) for geom in greenspace_src_buffer['centroid']]
                 kd_tree = cKDTree(centroid_coordinates)
                 min_distance, _ = kd_tree.query(poi_coords)
                 min_distance = round(min_distance,0)
@@ -280,12 +285,12 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
                 subgraph = nx.ego_graph(network_graph, nearest_node, radius=target_dist*1.5, distance="length")
                 pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
                 
-                park_boundary_nodes = {}
-                for park_id, geom in zip(park_src_buffer['park_id'], park_src_buffer['geometry']):
+                greenspace_boundary_nodes = {}
+                for greenspace_id, geom in zip(greenspace_src_buffer['greenspace_id'], greenspace_src_buffer['geometry']):
                     boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
-                    park_boundary_nodes[park_id] = boundary_nodes
+                    greenspace_boundary_nodes[greenspace_id] = boundary_nodes
 
-                entrance_points = [pos[node] for node_lists in park_boundary_nodes.values() for node in node_lists]
+                entrance_points = [pos[node] for node_lists in greenspace_boundary_nodes.values() for node in node_lists]
                 kd_tree = cKDTree(entrance_points)
                 min_distance, _ = kd_tree.query(poi_coords)
                 min_distance = round(min_distance,0)
@@ -295,9 +300,9 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
     # Store geometries considered for distance calculation
     try:
         if destination == "centroids":
-            dest_geometries = park_src_buffer['centroid'].to_list()
+            dest_geometries = greenspace_src_buffer['centroid'].to_list()
         else:
-            dest_geometries = [sg.Point(pos[node]) for nodes in park_boundary_nodes.values() for node in nodes]
+            dest_geometries = [sg.Point(pos[node]) for nodes in greenspace_boundary_nodes.values() for node in nodes]
     except:
         dest_geometries = []
 
@@ -309,6 +314,6 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
 
     if np.isnan(min_distance) or min_distance > target_dist:
         min_distance = target_dist
-        print(f"Warning: no park {destination} could be detected within {distance_type} distance of {target_dist}m for PoI with id {df_row.id}, distance_to_park is therefore set to target distance. Consider for further analysis.")
+        print(f"Warning: no greenspace {destination} could be detected within {distance_type} distance of {target_dist}m for PoI with id {df_row.id}, distance_to_greenspace is therefore set to target distance. Consider for further analysis.")
     
     return outcome, min_distance, dest_geometries
