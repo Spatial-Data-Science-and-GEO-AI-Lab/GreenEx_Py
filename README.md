@@ -256,10 +256,11 @@ accessibility.get_shortest_distance_park(point_of_interest_file=path+"AMS_exampl
 
 # Information provided while function was running
 Retrieving parks within total bounds of point(s) of interest, extended by a 450.0m buffer to account for edge effects...
-Done, running time: 0:00:00.812202 
+Done, running time: 0:00:09.116234 
 
 Calculating shortest distances...
-Done, running time: 0:00:00.118264 
+Warning: no park centroids could be detected within euclidean distance of 300m for PoI with id 1, distance_to_park is therefore set to target distance. Consider for further analysis.
+Done, running time: 0:00:00.124219 
 ```
 
 In the figure below, the PoIs and their buffer zones are plotted in blue, the park centroids (destination points) in red and the parks in green. Note that only destination points are created for parks that intersect the PoI buffer zones;
@@ -270,7 +271,7 @@ Function output;
 
 |   | geometry                      | id | park_within_300m | distance_to_park |
 |---|-------------------------------|----|------------------|------------------|
-| 0 | POINT (118883.345 485054.641) | 1  | True             | 292.0            |
+| 0 | POINT (118883.345 485054.641) | 1  | False            | 300.0            |
 | 1 | POINT (118246.855 488082.089) | 2  | True             | 177.0            |
 | 2 | POINT (122483.550 487728.517) | 3  | True             | 135.0            |
 
