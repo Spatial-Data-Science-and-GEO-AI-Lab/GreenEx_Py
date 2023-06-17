@@ -252,7 +252,6 @@ accessibility.get_shortest_distance_park(point_of_interest_file=path+"AMS_exampl
                                          distance_type='euclidean',
                                          destination='centroids',
                                          min_park_area=400,
-                                         plot_aoi=False,
                                          write_to_file=False)
 
 # Information provided while function was running
