@@ -16,7 +16,7 @@
 
 >> - distance_type *(string {"euclidian", "network"})* – the way in which the shortest distance to a greenspace should be calculated, straight line distance (euclidian) or network distance (network). By default, argument is set to euclidian. Note that if set to network, processing times might increase significantly in case many points/polygons of interest are provided in the point_of_interest file.
 
->> - destination *(string {"centroids", "entrance"})* – the destination points for the greenspaces. If "entrance", network distances will be computed between the point location's nearest network node and the network nodes that are within 20 meters of the greenspace boundaries - therefore considered as (fake) entry points. Euclidian distance between point location and nearest network node will be added. If "centroids", the same procedure applies while also taking into account the euclidian distance between the greenspace's centroid and fake entry points.
+>> - destination *(string {"centroids", "entrance"})* – the destination points for the greenspaces. If "entrance", distances will be computed between the point location and the network nodes that are within 20 meters of the greenspace boundaries - therefore considered as (fake) entry points.
 
 >> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
 
