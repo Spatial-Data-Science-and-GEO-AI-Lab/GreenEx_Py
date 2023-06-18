@@ -106,24 +106,22 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
                 raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
             else:
-                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
-                # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
-                buffer_dist = trip_time * meters_per_minute * 1.25
+                # Calculate max distance that can be travelled based on argument specified by user
+                buffer_dist = trip_time * meters_per_minute 
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
-            speed_time = False
 
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
     else:
-        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
 
     # Retrieve NDVI raster, use planetary computer if not provided by user 
     if ndvi_raster_file is None:
@@ -246,19 +244,10 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
                 # Find node which is closest to point location as base for next steps
                 center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                # Create subgraph around point of interest for efficiency purposes
-                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                # Calculate the time it takes to cover each edge's distance if speed_time is True
-                if speed_time:
-                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
-                        data["time"] = data["length"] / meters_per_minute
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
-                else:
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
                 # Compute isochrones, see separate function for line by line explanation
-                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
                 aoi_geometry.append(isochrone_poly)
 
             # Create geodataframe of isochrone geometries
@@ -302,12 +291,12 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
         folium.GeoJson(poi.to_crs("EPSG:4326"),
-                    name="PoI",
-                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
-                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+                       name="PoI",
+                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                       style_function=lambda feature: {'color': 'black'}).add_to(map)
         folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
-                    name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+                       name="Buffer zones",
+                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
@@ -384,24 +373,22 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
             if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
                 raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
             else:
-                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
                 # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
-                buffer_dist = trip_time * meters_per_minute * 1.25
+                buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
-            speed_time = False
             
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
     else:
-        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
 
     if landcover_raster_file is None:
         # Create epsg transformer to use planetary computer
@@ -510,19 +497,10 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
             for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
                 # Find node which is closest to point location as base for next steps
                 center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                # Create subgraph for efficiency purposes
-                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                # Calculate the time it takes to cover each edge's distance if speed_time is True
-                if speed_time:
-                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
-                        data["time"] = data["length"] / meters_per_minute
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
-                else:
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
                 # Compute isochrones, see separate function for line by line explanation
-                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
                 aoi_geometry.append(isochrone_poly)
 
             # Create dataframe of isochrone polygons
@@ -572,12 +550,12 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
         folium.GeoJson(poi.to_crs("EPSG:4326"),
-                    name="PoI",
-                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
-                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+                       name="PoI",
+                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                       style_function=lambda feature: {'color': 'black'}).add_to(map)
         folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
-                    name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+                       name="Buffer zones",
+                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
@@ -676,24 +654,22 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
             if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
                 raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
             else:
-                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
                 # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
-                buffer_dist = trip_time * meters_per_minute * 1.25
+                buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
-            speed_time = False
     
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
     else:
-        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
     
     ### Step 2: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
@@ -733,19 +709,10 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
             for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
                 # Find node which is closest to point location as base for next steps
                 center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                # Create subgraph around poi for efficiency purposes
-                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                # Calculate the time it takes to cover each edge's distance if speed_time is True
-                if speed_time:
-                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
-                        data["time"] = data["length"] / meters_per_minute
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
-                else:
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
                 # Compute isochrones, see separate function for line by line explanation
-                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
                 aoi_geometry.append(isochrone_poly)
 
             # Create dataframe of isochrone polygons
@@ -789,15 +756,15 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
         folium.GeoJson(poi.to_crs("EPSG:4326"),
-                    name="PoI",
-                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
-                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+                       name="PoI",
+                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                       style_function=lambda feature: {'color': 'black'}).add_to(map)
         folium.GeoJson(canopy_src.to_crs("EPSG:4326"),
-                    name="Tree canopy",
-                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+                       name="Tree canopy",
+                       style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
         folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
-                    name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.1}).add_to(map)
+                       name="Buffer zones",
+                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
@@ -874,24 +841,22 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
             if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
                 raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
             else:
-                speed_time = True # Set variable stating whether buffer_dist is calculated using travel speed and trip time
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
                 # Calculate max distance that can be travelled based on argument specified by user and add 25% to account for edge effects
-                buffer_dist = trip_time * meters_per_minute * 1.25
+                buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
-            speed_time = False
     
     # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
     if buffer_dist is None:
         poi_polygon = sg.box(*poi.total_bounds)
     else:
-        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist)
+        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
     # Transform to 4326 for OSM
     polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
     # Extract polygon in EPSG 4326 
@@ -975,19 +940,10 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
             for geom in tqdm(poi['geometry'], desc='Retrieving isochrone for point(s) of interest'):
                 # Find node which is closest to point location as base for next steps
                 center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                # Create subgraph around poi for efficiency purposes
-                buffer_graph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist*2, distance="length")
-                # Calculate the time it takes to cover each edge's distance if speed_time is True
-                if speed_time:
-                    for _, _, _, data in buffer_graph.edges(data=True, keys=True): 
-                        data["time"] = data["length"] / meters_per_minute
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=trip_time, distance="time") 
-                else:
-                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                    subgraph = nx.ego_graph(buffer_graph, center_node, radius=buffer_dist, distance="length") 
+                # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
                 # Compute isochrones, see separate function for line by line explanation
-                isochrone_poly = make_iso_poly(buffer_graph=buffer_graph, subgraph=subgraph) 
+                isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
                 aoi_geometry.append(isochrone_poly)
 
             # Create dataframe with isochrone geometries
@@ -1030,15 +986,15 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
         folium.GeoJson(poi.to_crs("EPSG:4326"),
-                    name="PoI",
-                    tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
-                    style_function=lambda feature: {'color': 'black'}).add_to(map)
+                       name="PoI",
+                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                       style_function=lambda feature: {'color': 'black'}).add_to(map)
         folium.GeoJson(greenspace_src.to_crs("EPSG:4326"),
-                    name="Greenspaces",
-                    style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
+                       name="Greenspaces",
+                       style_function=lambda feature: {'fillColor': 'green', 'color': 'green', 'fillOpacity': 0.7}).add_to(map)
         folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
-                    name="Buffer zones",
-                    style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
+                       name="Buffer zones",
+                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
@@ -1051,7 +1007,7 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
 
 ##### SUPPORTING FUNCTIONS
 # Function to create isochrone polygon of network
-def make_iso_poly(buffer_graph, subgraph, edge_buff=25, node_buff=0):
+def make_iso_poly(graph_projected, subgraph, edge_buff=25, node_buff=0):
     #Note: based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb
     node_points = [sg.Point((data["x"], data["y"])) for node, data in subgraph.nodes(data=True)] # Create list of point geometries existing of x and y coordinates for each node in subgraph retrieved from previous step
     nodes_gdf = gpd.GeoDataFrame({"id": list(subgraph.nodes)}, geometry=node_points) # Create geodataframe containing data from previous step
@@ -1061,7 +1017,7 @@ def make_iso_poly(buffer_graph, subgraph, edge_buff=25, node_buff=0):
     for n_fr, n_to in subgraph.edges(): # Iterate over edges in subgraph
         f = nodes_gdf.loc[n_fr].geometry # Retrieve geometry of the 'from' node of the edge
         t = nodes_gdf.loc[n_to].geometry # Retrieve geometry of the 'to' node of the edge
-        edge_lookup = buffer_graph.get_edge_data(n_fr, n_to)[0].get("geometry", sg.LineString([f, t])) # Retrieve edge geometry between from and to nodes
+        edge_lookup = graph_projected.get_edge_data(n_fr, n_to)[0].get("geometry", sg.LineString([f, t])) # Retrieve edge geometry between from and to nodes
         edge_lines.append(edge_lookup) # Append edge geometry to list of edge lines
 
     n = nodes_gdf.buffer(node_buff).geometry # Create buffer around the nodes
