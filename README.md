@@ -283,7 +283,7 @@ Greenspace visibility is measured using two functions; [get_streetview_GVI](#get
 <br><br>
 The functions will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved.
 
-Examples will be provided below for both functions. Note that the streetview GVI function was based on research conducted by [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility) whereas the viewshed GVI function was based on research conducted by [Jonny Huck & Labib Labib](https://github.com/jonnyhuck/green-visibility-index/tree/master). 
+Examples will be provided below for both functions. Note that the streetview GVI function was based on research conducted by [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility) whereas the viewshed GVI function was based on research conducted by [Labib et al., (2021)](https://github.com/jonnyhuck/green-visibility-index/tree/master). 
 
 ### **get_streetview_GVI**
 This function calculates the average Greenness Visibility Index for an area of interest based on streetview images which are retrieved through the [Mapillary API](https://www.mapillary.com/?locale=en_US). Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS).
@@ -298,11 +298,11 @@ visibility.get_streetview_GVI(point_of_interest_file=path+"AMS_example_data.gpkg
                               buffer_dist=150,
                               write_to_file=False)
 
-# Information provided while function was running
-Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in case provided...
+# Information provided while the function was running
+Retrieving network within total bounds of Point(s) of interest, extended by the buffer_dist in the case provided...
 Done, running time: 0:00:47.329337 
 
-Computing sample points for roads within area of interest's network...
+Computing sample points for roads within the area of interest's network...
 Done, running time: 0:00:01.145286 
 
 Downloading StreetView images for road sample points...
@@ -344,10 +344,10 @@ Function output (pt.2);
 | 84  | 3   | POINT (122408.407 487615.927) | 0.001916 | False        | False   |
 | 85  | 3   | POINT (122353.549 487686.836) | NaN      | None         | True    |
 
-The function returns the average GVI value as well as the number of sample road locations upon which this value was based. As is evident, the function highly depends on the availability of streetview images as no scores could be calculated for the first and third calculation. This can be confirmed by inspecting the second dataframe that is returned by the function; this dataframe includes each sample road location that was computed and its corresponding image's information. If missing is equal to True, no image could be found within 100 meters of the sample road location. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
+The function returns the average GVI value as well as the number of sample road locations upon which this value was based. As is evident, the function highly depends on the availability of streetview images as no scores could be calculated for the first and third calculations. This can be confirmed by inspecting the second dataframe that is returned by the function; this dataframe includes each sample road location that was computed and its corresponding image's information. If missing is equal to True, no image could be found within 100 meters of the sample road location. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
 ### **get_viewshed_GVI**
-This function calculates the average Greenness Visibility Index for an area of interest based on a viewshed analysis. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS). Also, they should provide three raster files containing the Digital Surface Model (DSM), Digital Terrain Model (DTM) and binary greenspace values, respectively. To clarify, the greenspace raster should contain 0 values for pixels that are not considered green and 1 values for pixels that are considered green. Example data for a DSM and DTM can be retrieved from this [site](https://zenodo.org/record/5061257).
+This function calculates the average Greenness Visibility Index for an area of interest based on a viewshed analysis. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS). Also, they should provide three raster files containing the Digital Surface Model (DSM), Digital Terrain Model (DTM) and binary greenspace values, respectively. To clarify, the greenspace raster should contain 0 values for pixels that are not considered green and 1 value for pixels that are considered green. Example data for a DSM and DTM can be retrieved from this [site](https://zenodo.org/record/5061257).
 
 The function generates sample road locations surrounding points of interest or within a polygon of interest (based on user inputs). It then processes the DSM and DTM to create a viewshed for each of the sample road locations. The viewshed is used to determine the number of visible green pixels as well as the total number of pixels that is visible from each sample road location so that a ratio can be calculated. These GVI scores for the sample road locations will be averaged to end up with a mean GVI score for each of the original PoIs as provided by the user.
 
@@ -426,10 +426,10 @@ The function returns the average GVI value as well as the number of sample road 
 ## Sources
 - Retrieving road network: [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/)
 - Retrieving satellite images for NDVI and landcover calculations: [Planetary Computer](https://planetarycomputer.microsoft.com/)
-- Calculating GVI based on viewshed analysis: [Jonny Huck & Labib Labib](https://github.com/jonnyhuck/green-visibility-index/tree/master)
+- Calculating GVI based on viewshed analysis: [Labib et al., (2021)](https://github.com/jonnyhuck/green-visibility-index/tree/master)
 - Calculating GVI based on streetview images: [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility)
 - Retrieving images for Streetview GVI: [Mapillary](https://www.mapillary.com/?locale=en_US)
-- Computing sample road locations from network: [Ondrej Mlynarcik](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb)
+- Computing sample road locations from the network: [Ondrej Mlynarcik](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/2.5D-GreenViewIndex-Netherlands/blob/main/sample_points_linestrings.ipynb)
 - Creation of network buffer isochrones: [Geoff Boeing](https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb)
 - Suitable Urban Greenspaces to represent greenspace areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
 
