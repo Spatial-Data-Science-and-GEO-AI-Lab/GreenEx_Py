@@ -70,7 +70,7 @@ To illustrate the differences between the latter two, the following figure was g
 The four availability functions are briefly described hereunder. 
 
 ### **get_mean_NDVI**
-This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a geopackage (.gpkg) format, ideally with a projected CRS.
+This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided in a vector file format, ideally with a projected CRS.
 
 Additionally, users may provide a raster file with NDVI values. If not provided, sentinel-2-l2a data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the NDVI raster. The NDVI raster which was created for the three locations of the example data is included in the following figure;
 
@@ -88,25 +88,26 @@ availability.get_mean_NDVI(point_of_interest_file=path+"AMS_example_data.gpkg",
 # Information provided while function was running
 Retrieving NDVI raster through planetary computer...
 Information on the satellite image retrieved from planetary computer, use to calculate NDVI values:              
-   Date on which image was generated: 2023-02-14T22:11:25.504905Z              
-   Percentage of cloud cover: 0.219867              
-   Percentage of pixels with missing data 0.003417
-Done, running time: 0:00:09.206837 
+   Date on which image was generated: 2023-06-14T18:28:31.597880Z              
+   Percentage of cloud cover: 0.084894              
+   Percentage of pixels with missing data 3e-05
+Done, running time: 0:00:13.447168 
 
 Calculating mean NDVI values...
-Done, running time: 0:00:00.178258 
+Done, running time: 0:00:01.881099 
 ```
 
 Function output; 
 
-|   | geometry                      | id | mean_NDVI |
-|--:|-------------------------------|----|-----------|
-| 0 | POINT (118883.345 485054.641) | 1  | 0.080     |
-| 1 | POINT (118246.855 488082.089) | 2  | 0.110     |
-| 2 | POINT (122483.550 487728.517) | 3  | 0.028     |
+
+|   | geometry                      | id | mean_NDVI | std_NDVI |
+|---|-------------------------------|----|-----------|----------|
+| 0 | POINT (118883.345 485054.641) | 1  | 0.204     | 0.136    |
+| 1 | POINT (118246.855 488082.089) | 2  | 0.187     | 0.129    |
+| 2 | POINT (122483.550 487728.517) | 3  | 0.047     | 0.073    |
 
 ### **get_landcover_percentages**
-This function calculates the percentage of area that is covered by each landcover class for an area of interest. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+This function calculates the percentage of area that is covered by each landcover class for an area of interest. Users should provide PoIs in a geopackage vector file format, ideally with a projected Coordinate Reference System (CRS).
 
 Additionally, users may provide a raster file with landcover class values. If not provided, esa-worldcover data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the landcover class raster. The landcover class raster which was created for the three locations of the example data is included in the following figure;
 
@@ -147,7 +148,7 @@ Function output;
 
 
 ### **get_canopy_percentage**
-This function calculates the percentage of area that is covered by tree canopy. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). Also, a tree canopy vector file should be provided which solely contains polygon or multipolygon geometries since areas cannot be calculated from point geometries.
+This function calculates the percentage of area that is covered by tree canopy. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS). Also, a tree canopy vector file should be provided which solely contains polygon or multipolygon geometries since areas cannot be calculated from point geometries.
 
 The percentage of area that is covered by tree canopy can be calculated by applying the following code;
 
@@ -178,7 +179,7 @@ Function output;
 | 0 | POINT (122906.402 487497.569) | 1  | 12.31%       |
 
 ### **get_greenspace_percentage**
-This function calculates the percentage of area that is covered by greenspaces. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). 
+This function calculates the percentage of area that is covered by greenspaces. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS). 
 
 Additionally, users may provide a vector file which contains greenspace geometries. These geometries should solely come in polygon/multipolygon format since areas cannot be calculated from point geometries. If the file is not provided, greenspaces will be extracted from [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/). Suitable Urban Greenspaces meet the following requirements, as indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility):
 1. Tags represent an area
@@ -230,7 +231,7 @@ Greenspace accessibility is currently measured using one function; [get_shortest
 The function will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved.
 
 ### **get_shortest_distance_greenspace**
-This function returns information on the presence of greenspaces within a certain threshold distance of address locations. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+This function returns information on the presence of greenspaces within a certain threshold distance of address locations. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS).
 
 Additionally, users should define the following;
 1. The threshold (target) distance to consider (meters)
@@ -285,7 +286,7 @@ The functions will return a geodataframe that contains the original points/polyg
 Examples will be provided below for both functions. Note that the streetview GVI function was based on research conducted by [Ilse A. Vázquez Sánchez](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/StreetView-NatureVisibility) whereas the viewshed GVI function was based on research conducted by [Jonny Huck & Labib Labib](https://github.com/jonnyhuck/green-visibility-index/tree/master). 
 
 ### **get_streetview_GVI**
-This function calculates the average Greenness Visibility Index for an area of interest based on streetview images which are retrieved through the [Mapillary API](https://www.mapillary.com/?locale=en_US). Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS).
+This function calculates the average Greenness Visibility Index for an area of interest based on streetview images which are retrieved through the [Mapillary API](https://www.mapillary.com/?locale=en_US). Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS).
 
 The function generates sample road locations surrounding points of interest or within a polygon of interest (based on user inputs). For these sample road locations, streetview images are retrieved if these are available within a 100 meter distance. Using a segmentation algorithm, the amount of visible greenness is determined and the index is calculated. The GVI scores for the sample road locations will be averaged to end up with a mean GVI score for each of the original PoIs as provided by the user. 
 
@@ -346,7 +347,7 @@ Function output (pt.2);
 The function returns the average GVI value as well as the number of sample road locations upon which this value was based. As is evident, the function highly depends on the availability of streetview images as no scores could be calculated for the first and third calculation. This can be confirmed by inspecting the second dataframe that is returned by the function; this dataframe includes each sample road location that was computed and its corresponding image's information. If missing is equal to True, no image could be found within 100 meters of the sample road location. The ID column can be used to match the sample road locations with the original PoI as provided by the user. 
 
 ### **get_viewshed_GVI**
-This function calculates the average Greenness Visibility Index for an area of interest based on a viewshed analysis. Users should provide PoIs in a geopackage (.gpkg) format, ideally with a projected Coordinate Reference System (CRS). Also, they should provide three raster files containing the Digital Surface Model (DSM), Digital Terrain Model (DTM) and binary greenspace values, respectively. To clarify, the greenspace raster should contain 0 values for pixels that are not considered green and 1 values for pixels that are considered green. Example data for a DSM and DTM can be retrieved from this [site](https://zenodo.org/record/5061257).
+This function calculates the average Greenness Visibility Index for an area of interest based on a viewshed analysis. Users should provide PoIs in a vector file format, ideally with a projected Coordinate Reference System (CRS). Also, they should provide three raster files containing the Digital Surface Model (DSM), Digital Terrain Model (DTM) and binary greenspace values, respectively. To clarify, the greenspace raster should contain 0 values for pixels that are not considered green and 1 values for pixels that are considered green. Example data for a DSM and DTM can be retrieved from this [site](https://zenodo.org/record/5061257).
 
 The function generates sample road locations surrounding points of interest or within a polygon of interest (based on user inputs). It then processes the DSM and DTM to create a viewshed for each of the sample road locations. The viewshed is used to determine the number of visible green pixels as well as the total number of pixels that is visible from each sample road location so that a ratio can be calculated. These GVI scores for the sample road locations will be averaged to end up with a mean GVI score for each of the original PoIs as provided by the user.
 

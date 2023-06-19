@@ -266,7 +266,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         print(f"Warning: Not all buffer zones for the {geom_type}s of Interest are completely within the area covered by the NDVI raster, note that results will be based on the intersecting part of the buffer zone")
 
     # Calculate mean ndvi for geometries in poi file
-    poi['mean_NDVI'] = aoi_gdf.apply(lambda row: np.nan if row.geometry is None else ndvi_src.rio.clip([row.geometry]).clip(min=0).mean().values.round(3), axis=1)
+    poi[['mean_NDVI', 'std_NDVI']] = aoi_gdf.apply(lambda row: pd.Series([np.nan, np.nan]) if row.geometry is None else pd.Series([ndvi_src.rio.clip([row.geometry]).clip(min=0).mean().values.round(3), ndvi_src.rio.clip([row.geometry]).clip(min=0).std().values.round(3)]), axis=1)
     end_calc = time()
     elapsed_calc = end_calc - start_calc
     print(f"Done, running time: {str(timedelta(seconds=elapsed_calc))} \n")

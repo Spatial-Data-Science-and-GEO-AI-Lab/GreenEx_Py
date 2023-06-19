@@ -35,7 +35,7 @@
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including column for mean NDVI value(s). Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
+>>> Dataframe as obtained from point_of_interest_file including column for mean NDVI value(s) and corresponding standard deviation. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
 
 >>Return type:	
 >>> Geodataframe
