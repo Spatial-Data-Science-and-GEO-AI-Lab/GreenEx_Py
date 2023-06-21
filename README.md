@@ -141,7 +141,7 @@ Done, running time: 0:00:00.509130
 
 Function output;
 
-| x | geometry                      | id | 0       | Tree cover | Grassland | Built-up | Bare / sparse vegetation | Permanent water bodies | Cropland |
+|   | geometry                      | id | 0       | Tree cover | Grassland | Built-up | Bare / sparse vegetation | Permanent water bodies | Cropland |
 |--:|-------------------------------|----|---------|------------|-----------|----------|--------------------------|------------------------|----------|
 | 0 | POINT (118883.345 485054.641) | 1  | 21.843% | 21.37%     | 0.771%    | 53.247%  | 0.013%                   | 2.757%                 | NaN      |
 | 1 | POINT (118246.855 488082.089) | 2  | 21.302% | 18.135%    | 1.687%    | 57.813%  | 0.114%                   | 0.928%                 | 0.021%   |
