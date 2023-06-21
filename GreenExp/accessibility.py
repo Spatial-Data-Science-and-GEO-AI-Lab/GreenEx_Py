@@ -133,7 +133,7 @@ def get_shortest_distance_greenspace(point_of_interest_file, crs_epsg=None, targ
     # Assign an id to all greenspaces to identify them at later stage
     greenspace_src['greenspace_id'] = list(range(len(greenspace_src)))
 
-    ### Step 3: Retrieve network from OSM if distance type is network or destination is fake entrance points
+    ### Step 3: Retrieve network from OSM if distance type is network or destination is pseudo entrance points
     if distance_type == "network" or destination == "entrance":
         # Make sure network_type has valid value
         if network_type not in ["walk", "bike", "drive", "all"]:
@@ -236,13 +236,13 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         # Create dictionary to extract geometries for nodes of interest
         pos = {n: (subgraph.nodes[n]['x'], subgraph.nodes[n]['y']) for n in subgraph.nodes} 
         
-        # For each greenspace, retrieve the network nodes which are within 20m of the greenspace boundary and store in dictionary (fake entry points)
+        # For each greenspace, retrieve the network nodes which are within 20m of the greenspace boundary and store in dictionary (pseudo entry points)
         greenspace_boundary_nodes = {}
         for greenspace_id, geom in zip(greenspace_src_buffer['greenspace_id'], greenspace_src_buffer['geometry']):
             boundary_nodes = [node for node in subgraph.nodes() if sg.Point(pos[node]).distance(geom.boundary) < 20]
             greenspace_boundary_nodes[greenspace_id] = boundary_nodes
 
-        # Calculate the network distances between the house location's nearest node and the fake greenspace entry points
+        # Calculate the network distances between the house location's nearest node and the pseudo greenspace entry points
         # Add penalty_home as defined before to network distance, as well as penalty_centroid in case user defined destination argument as "centroids"
         penalty_home = df_row['geometry'].distance(sg.Point(network_graph.nodes[nearest_node]['x'], network_graph.nodes[nearest_node]['y']))
         distances = {}
@@ -253,7 +253,7 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
                     distance = sum(subgraph.edges[path[i], path[i+1], 0]['length'] for i in range(len(path)-1))
                     
                     if destination == "centroids":
-                        # Calculate euclidean distance between the fake greenspace entry points and the corresponding greenspace's centroid to minimize distance error
+                        # Calculate euclidean distance between the pseudo greenspace entry points and the corresponding greenspace's centroid to minimize distance error
                         centroid = greenspace_src_buffer.loc[greenspace_src_buffer['greenspace_id'] == greenspace_id, 'centroid'].iloc[0]
                         penalty_centroid = centroid.distance(sg.Point(subgraph.nodes[node]['x'], subgraph.nodes[node]['y']))
                         distance += penalty_centroid
@@ -269,7 +269,7 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
         else:
             min_distance = np.nan
     else:
-        # Calculate the euclidean distance between the house location and the nearest fake greenspace entry point/greenspace centroid
+        # Calculate the euclidean distance between the house location and the nearest pseudo greenspace entry point/greenspace centroid
         poi_coords = (df_row['geometry'].x, df_row['geometry'].y)
         if destination == "centroids": 
             try:

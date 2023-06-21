@@ -237,7 +237,7 @@ This function returns information on the presence of greenspaces within a certai
 Additionally, users should define the following;
 1. The threshold (target) distance to consider (meters)
 2. Distance type, i.e. the way in which to consider the target distance; euclidean or network
-3. The greenspaces' destination points; entrance or centroids. If set to entrance, fake greenspace entry points will be created by computing a buffer of 20m around the greenspace polygons and intersecting this buffer zone with the road network. The points of intersection will then serve as fake entry points. NOTE: this requires the network to be extracted, even if distance type is set to euclidean. If set to centroids, the distance to the greenspace's center point will be calculated.
+3. The greenspaces' destination points; entrance or centroids. If set to entrance, pseudo greenspace entry points will be created by computing a buffer of 20m around the greenspace polygons and intersecting this buffer zone with the road network. The points of intersection will then serve as pseudo entry points. NOTE: this requires the network to be extracted, even if distance type is set to euclidean. If set to centroids, the distance to the greenspace's center point will be calculated.
 
 The greenspaces will again be extracted through [OpenStreetMap](https://osmnx.readthedocs.io/en/stable/) using the same requirements as mentioned before and indicated by [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility).
 

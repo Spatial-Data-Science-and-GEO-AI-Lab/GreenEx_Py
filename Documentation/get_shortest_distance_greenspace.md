@@ -2,7 +2,7 @@
 
 > Assess whether or not greenspaces are located within a threshold distance for points of interest.
 
-> Function to calculate the shortest distance from point locations to greenspaces in a euclidean or network manner. The greenspace destination points can be set to either "centroids" or "entrance". If "entrance", the distance will be calculated from the point location to the network nodes which are within 20 meters of the greenspace boundaries - also referred to as fake greenspace entry points. 
+> Function to calculate the shortest distance from point locations to greenspaces in a euclidean or network manner. The greenspace destination points can be set to either "centroids" or "entrance". If "entrance", the distance will be calculated from the point location to the network nodes which are within 20 meters of the greenspace boundaries - also referred to as pseudo greenspace entry points. 
 
 >> Parameters: 
 
@@ -16,7 +16,7 @@
 
 >> - distance_type *(string {"euclidian", "network"})* – the way in which the shortest distance to a greenspace should be calculated, straight line distance (euclidian) or network distance (network). By default, argument is set to euclidian. Note that if set to network, processing times might increase significantly in case many points/polygons of interest are provided in the point_of_interest file.
 
->> - destination *(string {"centroids", "entrance"})* – the destination points for the greenspaces. If "entrance", distances will be computed between the point location and the network nodes that are within 20 meters of the greenspace boundaries - therefore considered as (fake) entry points.
+>> - destination *(string {"centroids", "entrance"})* – the destination points for the greenspaces. If "entrance", distances will be computed between the point location and the network nodes that are within 20 meters of the greenspace boundaries - therefore considered as pseudo-entry points.
 
 >> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
 
