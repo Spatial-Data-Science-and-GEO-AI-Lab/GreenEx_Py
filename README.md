@@ -155,7 +155,7 @@ The percentage of area that is covered by tree canopy can be calculated by apply
 
 ```python
 availability.get_canopy_percentage(point_of_interest_file=path+"AMS_canopy_example.gpkg",
-                                   canopy_vector_file=test_path+"AMS_canopy_segment.gpkg",
+                                   canopy_vector_file=path+"AMS_canopy_segment.gpkg",
                                    buffer_type="euclidean",
                                    buffer_dist=250,
                                    write_to_file=False)
