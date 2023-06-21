@@ -88,7 +88,7 @@ availability.get_mean_NDVI(point_of_interest_file=path+"AMS_example_data.gpkg",
 
 # Information provided while function was running
 Retrieving NDVI raster through planetary computer...
-Information on the satellite image retrieved from planetary computer, use to calculate NDVI values:              
+Information on the satellite image retrieved from planetary computer, used to calculate NDVI values:              
    Date on which image was generated: 2023-06-14T18:28:31.597880Z              
    Percentage of cloud cover: 0.084894              
    Percentage of pixels with missing data 3e-05
