@@ -373,9 +373,9 @@ The viewshed GVI function can be applied as follows;
 
 ```python
 visibility.get_viewshed_GVI(point_of_interest_file=path+"AMS_example_data.gpkg",
-                            greendata_raster_file=test_path+"AMS_trees_binary_crs.tif",
-                            dtm_raster_file=test_path+"AMS_DTM_crs.tif",
-                            dsm_raster_file=test_path+"AMS_DSM_crs.tif",
+                            greendata_raster_file=path+"AMS_trees_binary_crs.tif",
+                            dtm_raster_file=path+"AMS_DTM_crs.tif",
+                            dsm_raster_file=path+"AMS_DSM_crs.tif",
                             buffer_dist=100,
                             viewing_dist=250,
                             sample_dist=50,
