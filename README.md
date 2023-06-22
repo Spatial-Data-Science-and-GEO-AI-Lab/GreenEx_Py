@@ -342,7 +342,7 @@ Function output (pt.1);
 
 Function output (pt.2);
 
-| x   | id  | geometry                      | GVI      | is_panoramic | missing |
+|     | id  | geometry                      | GVI      | is_panoramic | missing |
 |-----|-----|-------------------------------|----------|--------------|---------|
 | 0   | 1   | POINT (119009.625 484981.604) | 0.077009 | True         | False   |
 | 1   | 1   | POINT (118963.280 484962.840) | 0.070314 | True         | False   |
