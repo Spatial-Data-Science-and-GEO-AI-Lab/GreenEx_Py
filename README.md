@@ -399,9 +399,6 @@ Calculating GVI for Point 3: 100%
 48/48 [00:06<00:00, 7.09it/s]
 Note: calculation of Viewshed GVI based on code by Johnny Huck and Labib Labib 
 source: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py 
-
-Writing results to new geopackage file in specified directory...
-Done
 ```
 
 The resulting GVI values for the example data locations are shown in the figure below where an overlay is included of the DSM and the binary trees raster.
