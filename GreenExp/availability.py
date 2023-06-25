@@ -906,6 +906,11 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
                 else:
                     print("Warning: Not all polygons of interest are completely within the area covered by the greenspace file provided, results will be based on intersecting part of polygons involved \n")
 
+    # merge the overlapping greenspace into one polygon
+    s_ = gpd.GeoDataFrame(geometry=[greenspace_src.unary_union], crs=f"EPSG:{epsg}").explode(index_parts=False).reset_index(drop=True)
+    s_ = gpd.sjoin(s_, greenspace_src, how='left')
+    greenspace_src = s_.dissolve(s_.index, aggfunc='first').reset_index(drop=True)
+    
     ### Step 3: Construct the Area of Interest based on the arguments as defined by user
     if buffer_type is None:
         # Buffer type == None implies that polygon geometries serve as areas of interest
