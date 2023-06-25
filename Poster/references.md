@@ -1,0 +1,10 @@
+Poster References:
+
+1. Kondo, M., Fluehr, J., McKeon, T., & Branas, C. (2018). Urban Green Space and Its Impact on Human Health. International Journal of Environmental Research and Public Health, 15(3), 445.
+2. Jimenez, M. P., DeVille, N. V., Elliott, E. G., Schiff, J. E., Wilt, G. E., Hart, J. E., & James, P. (2021). Associations between Nature Exposure and Health: A Review of the Evidence. International Journal of Environmental Research and Public Health, 18(9), 4790.
+3. Rojas-Rueda, D., Nieuwenhuijsen, M. J., Gascon, M., Perez-Leon, D., & Mudu, P. (2019). Green spaces and mortality: a systematic review and meta-analysis of cohort studies. The Lancet Planetary Health, 3(11), e469–e477. 
+4. Labib, S. M., Lindley, S., & Huck, J. J. (2021). Estimating multiple greenspace exposure types and their associations with neighbourhood premature mortality: A socioecological study. Science of The Total Environment, 789, 147919. 
+5. Dadvand, P., & Nieuwenhuijsen, M. (2019). Green Space and Health. In Integrating Human Health into Urban and Transport Planning (pp. 409–423). Springer International Publishing. 
+6. Gou, A., Tan, G., Ding, X., Wang, J., Jiao, Y., Gou, C., & Tan, Q. (2023). Spatial association between green space and COPD mortality: a township-level ecological study in Chongqing, China. BMC Pulmonary Medicine, 23(1), 89. 
+7. Pallathadka, A., Pallathadka, L., Rao, S., Chang, H., & Van Dommelen, D. (2022). Using GIS-based spatial analysis to determine urban greenspace accessibility for different racial groups in the backdrop of COVID-19: a case study of four US cities. GeoJournal, 87(6), 4879–4899. 
+8. Barker, M., Chue Hong, N. P., Katz, D. S., Lamprecht, A.-L., Martinez-Ortiz, C., Psomopoulos, F., Harrow, J., Castro, L. J., Gruenpeter, M., Martinez, P. A., & Honeyman, T. (2022). Introducing the FAIR Principles for research software. Scientific Data, 9(1), 622. 
