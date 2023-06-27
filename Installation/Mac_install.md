@@ -12,7 +12,7 @@ Steps:
 3. Copy the URL for the repository. 
 4. Open Terminal on your mac. 
 5. Type “cd” and the directory where you want the cloned directory to be made. You can right-click the folder in Finder and choose “Copy 'the folder name'” to copy the path into clipboard. Then by pressing “Command” and “v” on your keyboard to paste the path into terminal.
-6.Type “git clone”, and then paste the URL you copied in step 2. Press Enter. The local clone will be created.
+6. Type “git clone”, and then paste the URL you copied in step 2. Press Enter. The local clone will be created.
 
 <br><br>**Installing and using conda environment** 
 <br>For additional information, please check this [link](https://conda.io/projects/conda/en/latest/user-guide/tasks/manage-environments.html#creating-an-environment-from-an-environment-yml-file)
