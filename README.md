@@ -444,6 +444,12 @@ The function returns the average GVI value as well as the number of sample road 
 - Creation of network buffer isochrones: [Geoff Boeing](https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb)
 - Suitable Urban Greenspaces to represent greenspace areas: [Bart Breekveldt](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/Urban_Greenspace_Accessibility)
 
-## Acknowledgements and contact
-Name: Yúri Grings <br>
-Email: y.n.f.grings@students.uu.nl
+## Acknowledgements and Contact Information
+Project made in collaboration with Dr. SM Labib from the Department of Human Geography and Spatial Planning at Utrecht University. This is a project of the Spatial Data Science and Geo-AI Lab, conducted for the Applied Data Science MSc degree by [Yúri Grings](https://github.com/YuriGrings).
+
+Contact Information:
+
+| Name        | Email                       |
+|-------------|-----------------------------|
+| Yúri Grings | y.n.f.grings@students.uu.nl |
+| S.M. Labib  | s.m.labib@uu.nl             |
