@@ -21,7 +21,7 @@ The aim of this package is to provide researchers with an open-source and user-f
 - [Acknowledgements](#Acknowledgements-and-contact)
 
 # Installation
-To install the python module on your local computer, please refer to the instruction manuals for [Windows](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Windows_install.md) and [Mac](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Mac_install.md). Alternatively, you can use the module in Google Colab by running the notebooks in the [Colab](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Colab) folder.
+To install the python module on your local computer, please refer to the instruction manuals for [Windows](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Windows_install.md) and [Mac](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/blob/main/Installation/Mac_install.md). Alternatively, you can use the module in Google Colab by running the notebook(s) in the [Colab](https://github.com/Spatial-Data-Science-and-GEO-AI-Lab/GreenEx_Py/tree/main/Colab) folder.
 
 NOTE: Local issues may be encountered when running the module locally on a Mac device, as was the case during testing. The module is developed on a Windows device and a separate yml file, containing the python environment, had to be created for Mac. 
 
