@@ -4,12 +4,17 @@ channels:
   - defaults
 dependencies:
   - affine=2.4.0=pyhd8ed1ab_0
+  - anyio=3.7.0=pyhd8ed1ab_1
   - appnope=0.1.3=pyhd8ed1ab_0
+  - argon2-cffi=21.3.0=pyhd8ed1ab_0
+  - argon2-cffi-bindings=21.2.0=py310h8e9501a_3
   - asttokens=2.2.1=pyhd8ed1ab_0
   - attrs=23.1.0=pyh71513ae_1
   - backcall=0.2.0=pyh9f0ad1d_0
   - backports=1.0=pyhd8ed1ab_3
   - backports.functools_lru_cache=1.6.5=pyhd8ed1ab_0
+  - beautifulsoup4=4.12.2=pyha770c72_0
+  - bleach=6.0.0=pyhd8ed1ab_0
   - blosc=1.21.4=hc338f07_0
   - boost-cpp=1.78.0=h9ed8d21_3
   - branca=0.6.0=pyhd8ed1ab_0
@@ -20,6 +25,7 @@ dependencies:
   - ca-certificates=2023.5.7=hf0a4a13_0
   - cairo=1.16.0=h1e71087_1016
   - certifi=2023.5.7=pyhd8ed1ab_0
+  - cffi=1.15.1=py310h2399d43_3
   - cfitsio=4.2.0=h2f961c4_0
   - charset-normalizer=3.1.0=pyhd8ed1ab_0
   - click=8.1.3=unix_pyhd8ed1ab_2
@@ -36,9 +42,13 @@ dependencies:
   - datashape=0.5.4=py_1
   - debugpy=1.6.7=py310h0f1eb42_0
   - decorator=5.1.1=pyhd8ed1ab_0
+  - defusedxml=0.7.1=pyhd8ed1ab_0
+  - entrypoints=0.4=pyhd8ed1ab_0
+  - exceptiongroup=1.1.1=pyhd8ed1ab_0
   - executing=1.2.0=pyhd8ed1ab_0
   - expat=2.5.0=hb7217d7_1
   - fiona=1.9.3=py310h2e51ddd_0
+  - flit-core=3.9.0=pyhd8ed1ab_0
   - folium=0.14.0=pyhd8ed1ab_0
   - font-ttf-dejavu-sans-mono=2.37=hab24e00_0
   - font-ttf-inconsolata=3.000=h77eed37_0
@@ -64,14 +74,25 @@ dependencies:
   - idna=3.4=pyhd8ed1ab_0
   - importlib-metadata=6.7.0=pyha770c72_0
   - importlib_metadata=6.7.0=hd8ed1ab_0
+  - importlib_resources=5.12.0=pyhd8ed1ab_0
   - ipykernel=6.21.1=pyh736e0ef_0
   - ipython=8.14.0=pyhd1c38e8_0
+  - ipython_genutils=0.2.0=py_1
+  - ipywidgets=8.0.6=pyhd8ed1ab_0
   - jedi=0.18.2=pyhd8ed1ab_0
   - jinja2=3.1.2=pyhd8ed1ab_1
   - joblib=1.2.0=pyhd8ed1ab_0
   - json-c=0.16=hc449e50_0
+  - jsonschema=4.17.3=pyhd8ed1ab_0
+  - jupyter=1.0.0=py310hbe9552e_8
   - jupyter_client=8.3.0=pyhd8ed1ab_0
+  - jupyter_console=6.6.3=pyhd8ed1ab_0
   - jupyter_core=5.3.1=py310hbe9552e_0
+  - jupyter_events=0.6.3=pyhd8ed1ab_0
+  - jupyter_server=2.6.0=pyhd8ed1ab_0
+  - jupyter_server_terminals=0.4.4=pyhd8ed1ab_1
+  - jupyterlab_pygments=0.2.2=pyhd8ed1ab_0
+  - jupyterlab_widgets=3.0.7=pyhd8ed1ab_1
   - kealib=1.5.1=hc851fbe_3
   - kiwisolver=1.4.4=py310h2887b22_1
   - krb5=1.20.1=h69eda48_0
@@ -124,20 +145,32 @@ dependencies:
   - markupsafe=2.1.3=py310h2aa6e3c_0
   - matplotlib-base=3.7.1=py310h78c5c2f_0
   - matplotlib-inline=0.1.6=pyhd8ed1ab_0
+  - mistune=3.0.0=pyhd8ed1ab_0
   - multipledispatch=0.6.0=py_0
   - munch=3.0.0=pyhd8ed1ab_0
   - munkres=1.1.4=pyh9f0ad1d_0
+  - nbclassic=1.0.0=pyhb4ecaf3_1
+  - nbclient=0.8.0=pyhd8ed1ab_0
+  - nbconvert=7.6.0=pyhd8ed1ab_0
+  - nbconvert-core=7.6.0=pyhd8ed1ab_0
+  - nbconvert-pandoc=7.6.0=pyhd8ed1ab_0
+  - nbformat=5.9.0=pyhd8ed1ab_0
   - ncurses=6.4=h7ea286d_0
   - nest-asyncio=1.5.6=pyhd8ed1ab_0
   - networkx=3.1=pyhd8ed1ab_0
   - noise=1.2.2=py310h8e9501a_1004
+  - notebook=6.5.4=pyha770c72_0
+  - notebook-shim=0.2.3=pyhd8ed1ab_0
   - nspr=4.35=hb7217d7_0
   - nss=3.89=h789eff7_0
   - numba=0.57.1=py310hb9b3264_0
   - openjpeg=2.5.0=hbc2ba62_2
   - openssl=3.1.1=h53f4e23_1
+  - overrides=7.3.1=pyhd8ed1ab_0
   - packaging=23.1=pyhd8ed1ab_0
   - pandas=1.5.3=py310h2b830bf_1
+  - pandoc=3.1.3=hce30654_0
+  - pandocfilters=1.5.0=pyhd8ed1ab_0
   - param=1.13.0=pyh1a96a4e_0
   - parso=0.8.3=pyhd8ed1ab_0
   - partd=1.4.0=pyhd8ed1ab_0
@@ -147,59 +180,78 @@ dependencies:
   - pillow=9.5.0=py310h60ecbdf_1
   - pip=23.0.1=pyhd8ed1ab_0
   - pixman=0.40.0=h27ca646_0
+  - pkgutil-resolve-name=1.3.10=pyhd8ed1ab_0
   - planetary-computer=0.4.9=pyhd8ed1ab_0
   - platformdirs=3.8.0=pyhd8ed1ab_0
   - poppler=23.05.0=h16d8c84_1
   - poppler-data=0.4.12=hd8ed1ab_0
   - postgresql=15.3=hb5ad9d5_1
   - proj=9.2.0=h13f728c_0
+  - prometheus_client=0.17.0=pyhd8ed1ab_0
   - prompt-toolkit=3.0.38=pyha770c72_0
   - prompt_toolkit=3.0.38=hd8ed1ab_0
   - psutil=5.9.5=py310h8e9501a_0
   - pthread-stubs=0.4=h27ca646_1001
   - ptyprocess=0.7.0=pyhd3deb0d_0
   - pure_eval=0.2.2=pyhd8ed1ab_0
+  - pycparser=2.21=pyhd8ed1ab_0
   - pyct=0.4.6=py_0
   - pyct-core=0.4.6=py_0
   - pydantic=1.10.9=py310h2aa6e3c_0
   - pygments=2.15.1=pyhd8ed1ab_0
+  - pyobjc-core=9.2=py310hd07e440_0
+  - pyobjc-framework-cocoa=9.2=py310hd07e440_0
   - pyparsing=3.1.0=pyhd8ed1ab_0
   - pyproj=3.6.0=py310he41a1dd_0
+  - pyrsistent=0.19.3=py310h8e9501a_0
   - pysocks=1.7.1=pyha2e5f31_6
   - pystac=1.7.3=pyhd8ed1ab_0
   - pystac-client=0.6.0=pyhd8ed1ab_0
   - python=3.10.12=h01493a6_0_cpython
   - python-dateutil=2.8.2=pyhd8ed1ab_0
   - python-dotenv=1.0.0=pyhd8ed1ab_0
+  - python-fastjsonschema=2.17.1=pyhd8ed1ab_0
+  - python-json-logger=2.0.7=pyhd8ed1ab_0
   - python_abi=3.10=3_cp310
   - pytz=2023.3=pyhd8ed1ab_0
   - pyyaml=6.0=py310h8e9501a_5
   - pyzmq=25.1.0=py310h30b7201_0
   - readline=8.2=h92ec313_1
+  - rfc3339-validator=0.1.4=pyhd8ed1ab_0
+  - rfc3986-validator=0.1.1=pyh9f0ad1d_0
   - rioxarray=0.14.1=pyhd8ed1ab_0
   - rtree=1.0.1=py310ha3239f5_1
   - scikit-learn=1.2.2=py310h02d4e2a_2
   - scipy=1.9.0=py310hdb41229_0
+  - send2trash=1.8.2=pyhd1c38e8_0
   - setuptools=68.0.0=pyhd8ed1ab_0
   - shapely=2.0.1=py310h605c0e7_1
   - six=1.16.0=pyh6c4a22f_0
   - snappy=1.1.10=h17c5cce_0
+  - sniffio=1.3.0=pyhd8ed1ab_0
   - snuggs=1.4.7=py_0
+  - soupsieve=2.3.2.post1=pyhd8ed1ab_0
   - sqlite=3.42.0=h203b68d_0
   - stack_data=0.6.2=pyhd8ed1ab_0
+  - terminado=0.17.1=pyhd1c38e8_0
   - threadpoolctl=3.1.0=pyh8a188c0_0
   - tiledb=2.13.2=h9bd36d0_0
+  - tinycss2=1.2.1=pyhd8ed1ab_0
   - tk=8.6.12=he1e0b03_0
   - toolz=0.12.0=pyhd8ed1ab_0
   - tornado=6.3.2=py310h2aa6e3c_0
   - traitlets=5.9.0=pyhd8ed1ab_0
   - typing-extensions=4.6.3=hd8ed1ab_0
   - typing_extensions=4.6.3=pyha770c72_0
+  - typing_utils=0.1.0=pyhd8ed1ab_0
   - tzcode=2023c=h1a8c8d9_0
   - tzdata=2023c=h71feb2d_0
   - unicodedata2=15.0.0=py310h8e9501a_0
   - wcwidth=0.2.6=pyhd8ed1ab_0
+  - webencodings=0.5.1=py_1
+  - websocket-client=1.6.1=pyhd8ed1ab_0
   - wheel=0.40.0=pyhd8ed1ab_0
+  - widgetsnbextension=4.0.7=pyhd8ed1ab_0
   - xarray=2023.6.0=pyhd8ed1ab_0
   - xarray-spatial=0.3.5=pyhd8ed1ab_0
   - xerces-c=3.2.4=h68f8447_2
