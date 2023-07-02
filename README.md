@@ -1,4 +1,4 @@
-# GreenEx_Py: Greenness Exposure Assessment in Python
+# GreenEx_Py: Greenness Exposure Assessment in Python <img src="Plots/GreenEXP_logoPy.png" align="right" height="139"/>
 
 # Aim and objectives
 The aim of this package is to provide researchers with an open-source and user-friendly tool that may facilitate analyses concerning the ecological and societal effects of greenspace exposure, among others, in a robust and transparent way. 
