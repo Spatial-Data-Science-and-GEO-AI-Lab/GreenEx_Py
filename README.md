@@ -38,7 +38,7 @@ The functions which were created to model the greenspace exposure as defined by 
 import geopandas as gpd
 
 # Path to data
-path = "C:/Users/ygrin/Documents/Studie - MSc ADS/Utrecht University/Block 4 - Thesis/TestData/"
+path = "TestData/"
 example_data = gpd.read_file(path + "AMS_example_data.gpkg")
 ```
 The resulting geodataframe contains three locations in Amsterdam (The Netherlands), has a projected Coordinate Reference System (EPSG:28992) and looks as follows;
