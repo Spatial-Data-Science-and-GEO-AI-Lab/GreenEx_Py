@@ -268,7 +268,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     print(f"Done, running time: {str(timedelta(seconds=elapsed_sample_points))} \n")
 
     ### Step 4: Perform the Viewshed GVI calculation
-    poi[['GVI', 'nr_of_points', 'GVI_list']] = poi.apply(lambda row: pd.Series(f(mask, row, geom_type)), axis=1)
+    poi[['GVI', 'nr_of_points', 'GVI_list']] = poi.apply(lambda row: pd.Series(calc_gvi(mask, row, geom_type)), axis=1)
     # Assign GVI scores to each sample road location
     sampled_points_gdf['GVI'] = poi['GVI_list'].explode().reset_index(drop=True)
     print("Note: calculation of Viewshed GVI based on code by Johnny Huck and Labib Labib \nsource: https://github.com/jonnyhuck/green-visibility-index/blob/master/gvi.py \n")
@@ -514,7 +514,7 @@ def lineOfSight(r0, c0, r1, c1, observer_height, resolution, target_height, dsm_
     return output
 
 
-def f(mask, df_row, geom_type):
+def calc_gvi(mask, df_row, geom_type):
     # create an output array at the same dimensions as data for output
     gvi = zeros((mask["meta"]["height"], mask["meta"]["width"]))
 
