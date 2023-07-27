@@ -131,7 +131,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         # Query planetary computer
         catalog = pystac_client.Client.open("https://planetarycomputer.microsoft.com/api/stac/v1",modifier=planetary_computer.sign_inplace)
         # Obtain Area of Interest
-        time_of_interest = f"{year}-01-01/{year}-12-30" 
+        time_of_interest = f"{year}-01-01/{year}-12-31" 
         # Search Data
         search = catalog.search(collections=["sentinel-2-l2a"],
                                 bbox=bounding_box_pc,
