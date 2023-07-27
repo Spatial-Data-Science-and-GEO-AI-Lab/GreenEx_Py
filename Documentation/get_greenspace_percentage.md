@@ -12,9 +12,9 @@
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default.
 
->> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries.
+>> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries. If set to "house", polygon geometries will be converted to point geometries.
 
->> - buffer_type *(string {"euclidean", "network"})* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the way in which the area of interest should be composed. If "euclidean", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isochrone maps will be composed based on the additional arguments of trip_time and travel_speed.
+>> - buffer_type *(string {"euclidean", "network"})* – to be defined in case point_of_interest_file contains point geometries or polygon geometries which represent houses and optional in case point_of_interest_file contains polygon geometries which represent neighbourhoods, the way in which the area of interest should be composed. If "euclidean", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isochrone maps will be composed based on the buffer distance or combination of trip_time and travel_speed.
 
 >> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidean" and optional if buffer_type is set to "network". The distance in meters that will be used to compute the area of interest surrounding the geometries of the point_of_interest file. NOTE: In case buffer_type is set to "network", buffer_dist should not be specified if travel_speed and trip_time arguments are specified.
 
