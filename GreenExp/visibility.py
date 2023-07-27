@@ -99,11 +99,11 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
     # Make sure sample_dist is set 
     if not isinstance(sample_dist, (float, int)) or (not sample_dist > 0):
-        raise TypeError("Please make sure that the sample_dist argument is set to a positive integer")
+        raise TypeError("Please make sure that the sample_dist argument is set to a positive number")
     
     # Make sure observer_height is set
     if not isinstance(observer_height, (float, int)) or (not observer_height > 0):
-        raise TypeError("Please make sure that the observer_height argument is set to a positive integer")
+        raise TypeError("Please make sure that the observer_height argument is set to a positive number")
 
     # Read DSM, DTM and greenspace rasters
     with rasterio.open(dsm_raster_file) as src:

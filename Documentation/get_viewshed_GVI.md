@@ -24,7 +24,7 @@
 
 >> - viewing_dist *(int)* - the viewing distance in meters to consider when composing the viewshed.
 
->> - sample_dist *(int)* - the interval in meters that is used to define road network locations. For each road that is within the area of interest, point locations will be generated using an interval of sample_dist meters. If a road is too short, the road's center location will be used. 
+>> - sample_dist *(float, int)* - the interval in meters that is used to define road network locations. For each road that is within the area of interest, point locations will be generated using an interval of sample_dist meters. If a road is too short, the road's center location will be used. 
 
 >> - observer_height *(float, int)* - a person's height in meters to consider for the creation of viewsheds and lines of sight. 
 
