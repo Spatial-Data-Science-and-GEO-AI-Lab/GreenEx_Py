@@ -48,15 +48,10 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
-    # Make sure the type of polygon is specified if poi file contains polygon geometries
-    if geom_type == "Polygon":
-        if polygon_type not in ["neighbourhood", "house"]:
-            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
-
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
@@ -318,15 +313,10 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
-    # Make sure type of polygon is specified in case poi file contains polygon geometries
-    if geom_type == "Polygon":
-        if polygon_type not in ["neighbourhood", "house"]:
-            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
-
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
@@ -577,15 +567,10 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
-    # Make sure type of polygon is specified in case poi file contains polygon geometries
-    if geom_type == "Polygon":
-        if polygon_type not in ["neighbourhood", "house"]:
-            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
-
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
@@ -786,15 +771,10 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
     else:
         raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
-    # Make sure type of polygon is specified in case poi file contains polygon geometries
-    if geom_type == "Polygon":
-        if polygon_type not in ["neighbourhood", "house"]:
-            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
-
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
