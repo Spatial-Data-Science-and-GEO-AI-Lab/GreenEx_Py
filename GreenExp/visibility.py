@@ -279,8 +279,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_added.gpkg"), driver="GPKG")
@@ -420,8 +419,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Extract filename of poi file to add information when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_StreetviewGVI_added.gpkg"), driver="GPKG")

@@ -171,8 +171,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             # Create a PIL Image object from the downloaded image data
             image = Image.open(BytesIO(response.content))
             # Create directory if the one specified by the user does not yet exist
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+            os.makedirs(output_dir, exist_ok=True)
             # Get filename of the poi file to append information to it
             input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
             # Save the image to a file
@@ -269,8 +268,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create directory if output directory specified by user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Retrieve filename from original poi file to add information to it while writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_ndvi_added.gpkg"), driver="GPKG")
@@ -420,8 +418,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
 
         if save_lulc:
             # Create directory if the one specified by user does not yet exist
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
+            os.makedirs(output_dir, exist_ok=True)
             # Extract filename of poi file to add information when writing to file
             input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
             # Write landcover raster to file
@@ -523,8 +520,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Extract poi filename to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_LCperc_added.gpkg"), driver="GPKG")
@@ -724,8 +720,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create directory if the one specified by the user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_CanopyPerc_added.gpkg"), driver="GPKG")
@@ -954,8 +949,7 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
     if write_to_file:
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         # Extract filename of poi file to add information to it when writing to file
         input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
         poi.to_file(os.path.join(output_dir, f"{input_filename}_GreenspacePerc_added.gpkg"), driver="GPKG")
