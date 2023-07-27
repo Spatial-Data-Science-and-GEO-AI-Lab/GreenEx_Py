@@ -336,8 +336,8 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
             raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
 
     # Make sure Mapillary API token is provided
-    if access_token is None:
-        raise TypeError("Please make sure that an access token for Mapillary is provided")
+    if access_token is None or not access_token.startswith("MLY"):
+        raise TypeError("Please make sure that a valid access token for Mapillary is provided")
 
     # Make sure number of workers is valid value
     if not isinstance(workers, int) or (not workers > 0):
