@@ -308,9 +308,9 @@ def calculate_shortest_distance(df_row=None, target_dist=None, distance_type=Non
 
     ### Step 6: Define result, if minimum distance smaller than/equal to target distance threshold --> Good
     if min_distance <= target_dist:
-        outcome = "True"
+        outcome = True
     else:
-        outcome = "False"
+        outcome = False
 
     if np.isnan(min_distance) or min_distance > target_dist:
         min_distance = target_dist
