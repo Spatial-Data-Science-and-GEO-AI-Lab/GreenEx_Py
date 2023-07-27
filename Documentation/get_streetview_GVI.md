@@ -14,7 +14,7 @@
 
 >> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest_file contains polygon geometries. In case set to "neighbourhood", buffer_dist argument is optional and if not specified, GVI values will be calculated for road network locations within each polygon geometry. If set to "house", network will be retrieved from OpenStreetMap and based on buffer_dist if not provided. 
 
->> - buffer_dist *(int)* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the point/polygon of interest surrounding distance that should be considered when defining road network locations for calculating GVI values. 
+>> - buffer_dist *(int)* – to be defined in case point_of_interest_file contains point geometries and optional in case point_of_interest_file contains polygon geometries, the point/polygon of interest surrounding distance in meters that should be considered when defining road network locations for calculating GVI values. 
 
 >> - workers *(int)* – the maximum number of concurrent worker threads to use (i.e. simultaneous tasks that can be executed), providing control over the level of concurrency in the function.
 
