@@ -279,7 +279,7 @@ Function output;
 | 1 | POINT (118246.855 488082.089) | 2  | True                   | 177.0                  |
 | 2 | POINT (122483.550 487728.517) | 3  | True                   | 135.0                  |
 
-The function returns a boolean value indicating whether at least one greenspace is within the target distance. Additionally, it provides the distance in meters if within the threshold distance. 
+The function returns a boolean value indicating whether at least one greenspace is within the target distance. Additionally, it provides the distance in meters. Note that if no greenspace is found within the threshold distance, the distance_to_greenspace is set to the threshold's value. 
 
 ## *Visibility*
 Greenspace visibility is measured using two functions; [get_streetview_GVI](#get_streetview_GVI) and [get_viewshed_GVI](#get_viewshed_GVI). 
