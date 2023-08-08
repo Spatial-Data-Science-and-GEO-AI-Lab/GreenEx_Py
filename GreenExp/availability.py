@@ -175,7 +175,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             # Get filename of the poi file to append information to it
             input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
             # Save the image to a file
-            image.save(os.path.join(output_dir, f"{input_filename}_ndvi_satellite_image.png"))
+            image.save(os.path.join(output_dir, f"{input_filename}_ndvi_satellite_image.tif"))
             ndvi_src.rio.to_raster(os.path.join(output_dir, f"{input_filename}_ndvi_raster.tif"))
             print("Satellite image and created NDVI raster successfully saved to file")
         end_ndvi_retrieval = time()
