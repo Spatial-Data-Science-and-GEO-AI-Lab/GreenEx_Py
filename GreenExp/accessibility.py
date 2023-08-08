@@ -170,9 +170,9 @@ def get_shortest_distance_greenspace(point_of_interest_file, crs_epsg=None, targ
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract filename of poi file to add information to it when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_ShortDistGreenspace_added.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:

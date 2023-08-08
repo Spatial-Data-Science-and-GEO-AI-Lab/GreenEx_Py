@@ -280,10 +280,10 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract filename of poi file to add information to it when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_added.gpkg"), driver="GPKG")
-        sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_ViewshedGVI_sampled_points.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
+        sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_sampled_points.gpkg"), driver="GPKG")
         print("Done")
 
     return poi, sampled_points_gdf
@@ -420,10 +420,10 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract filename of poi file to add information when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_StreetviewGVI_added.gpkg"), driver="GPKG")
-        sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_StreetviewGVI_sampled_points.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
+        sampled_points_gdf.to_file(os.path.join(output_dir, f"{input_filename}_sampled_points.gpkg"), driver="GPKG")
         print("Done")
 
     return poi, sampled_points_gdf

@@ -157,7 +157,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         ndvi_src = ndvi.rio.reproject(f"EPSG:{epsg}", resampling= Resampling.nearest, nodata=np.nan)
 
         # Provide information on satellite image that was used to user
-        print(f"Information on the satellite image retrieved from planetary computer, use to calculate NDVI values:\
+        print(f"Information on the satellite image retrieved from planetary computer, used to calculate NDVI values:\
               \n   Date on which image was generated: {selected_item.properties['s2:generation_time']}\
               \n   Percentage of cloud cover: {selected_item.properties['eo:cloud_cover']}\
               \n   Percentage of pixels with missing data {selected_item.properties['s2:nodata_pixel_percentage']}")
@@ -172,11 +172,12 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
             image = Image.open(BytesIO(response.content))
             # Create directory if the one specified by the user does not yet exist
             os.makedirs(output_dir, exist_ok=True)
-            # Get filename of the poi file to append information to it
-            input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+            # Ask for filename to use
+            input_filename_satellite = input("Enter filename for satellite image: ")
+            input_filename_ndvi = input("Enter filename for ndvi raster: ")
             # Save the image to a file
-            image.save(os.path.join(output_dir, f"{input_filename}_ndvi_satellite_image.tif"))
-            ndvi_src.rio.to_raster(os.path.join(output_dir, f"{input_filename}_ndvi_raster.tif"))
+            image.save(os.path.join(output_dir, f"{input_filename_satellite}.tif"))
+            ndvi_src.rio.to_raster(os.path.join(output_dir, f"{input_filename_ndvi}.tif"))
             print("Satellite image and created NDVI raster successfully saved to file")
         end_ndvi_retrieval = time()
         elapsed_ndvi_retrieval = end_ndvi_retrieval - start_ndvi_retrieval
@@ -269,9 +270,9 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
         print("Writing results to new geopackage file in specified directory...")
         # Create directory if output directory specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Retrieve filename from original poi file to add information to it while writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_ndvi_added.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
@@ -419,10 +420,10 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
         if save_lulc:
             # Create directory if the one specified by user does not yet exist
             os.makedirs(output_dir, exist_ok=True)
-            # Extract filename of poi file to add information when writing to file
-            input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
+            # Ask for filename to use
+            input_filename = input("Enter filename for landcover raster: ")
             # Write landcover raster to file
-            landcover_src.rio.to_raster(os.path.join(output_dir, f"{input_filename}_lulc_raster.tif"))
+            landcover_src.rio.to_raster(os.path.join(output_dir, f"{input_filename}.tif"))
             print("Landcover image successfully saved to raster file")
         end_landcover_retrieval = time()
         elapsed_landcover_retrieval = end_landcover_retrieval - start_landcover_retrieval
@@ -521,9 +522,9 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract poi filename to add information to it when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_LCperc_added.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
@@ -721,9 +722,9 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
         print("Writing results to new geopackage file in specified directory...")
         # Create directory if the one specified by the user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract filename of poi file to add information to it when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_CanopyPerc_added.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
@@ -950,9 +951,9 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
         print("Writing results to new geopackage file in specified directory...")
         # Create output directory if the one specified by user does not yet exist
         os.makedirs(output_dir, exist_ok=True)
-        # Extract filename of poi file to add information to it when writing to file
-        input_filename, _ = os.path.splitext(os.path.basename(point_of_interest_file))
-        poi.to_file(os.path.join(output_dir, f"{input_filename}_GreenspacePerc_added.gpkg"), driver="GPKG")
+        # Ask for filename to use
+        input_filename = input("Enter filename for results: ")
+        poi.to_file(os.path.join(output_dir, f"{input_filename}.gpkg"), driver="GPKG")
         print("Done")
 
     if plot_aoi:
