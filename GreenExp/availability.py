@@ -98,8 +98,8 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -107,7 +107,7 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
                 buffer_dist = trip_time * meters_per_minute 
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
-            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+            if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
@@ -358,8 +358,8 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -367,7 +367,7 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
                 buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
-            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+            if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
@@ -632,8 +632,8 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -641,7 +641,7 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
                 buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
-            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+            if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
@@ -813,8 +813,8 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            if not isinstance(travel_speed, int) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive integers")
+            if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -822,7 +822,7 @@ def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=Non
                 buffer_dist = trip_time * meters_per_minute
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
-            if isinstance(travel_speed, int) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+            if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
                 raise TypeError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
