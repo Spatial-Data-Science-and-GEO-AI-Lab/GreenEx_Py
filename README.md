@@ -56,7 +56,7 @@ For a more detailed overview of the function arguments, requirements and output,
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_greenspace_percentage](#get_greenspace_percentage). 
 <br><br>
-All functions will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved. These values are based on an area of interest (AoI) which can be composed in three distinct ways;
+All functions will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved. PoIs may for example represent house addresses or neighbourhoods. The results' values are based on an area of interest (AoI) which can be composed in three distinct ways;
 
 - AoI(s) provided by user (i.e. polygon geometries) and without applying a buffer zone
 - AoI(s) created by defining Euclidean buffer
