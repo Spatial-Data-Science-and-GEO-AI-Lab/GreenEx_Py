@@ -290,7 +290,7 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
 
 
 def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, workers=4,
-                       network_file=None, write_to_file=True, output_dir=os.getcwd()):
+                       crop_by_road_centres=True, network_file=None, write_to_file=True, output_dir=os.getcwd()):
     
     ### Step 1: Read and process user inputs, check conditions
     poi = gpd.read_file(point_of_interest_file)
@@ -401,7 +401,7 @@ def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None,
     # Retrieve features, images, from Mapillary for the road locations
     features = get_features_on_points(buffer_points, access_token, epsg)
     # Process the features and calculate GVI score for road locations
-    gvi_per_point = download_images_for_points(features, access_token, epsg, workers)
+    gvi_per_point = download_images_for_points(features, access_token, epsg, crop_by_road_centres, workers)
     end_images = time()
     elapsed_images = end_images - start_images
     print(f"Done, running time: {str(timedelta(seconds=elapsed_images))} \n")
@@ -774,7 +774,7 @@ def find_road_centre(segmentation):
 	return centres
 
 
-def crop_panoramic_images(original_width, image, segmentation, road_centre):
+def crop_panoramic_images_roads(original_width, image, segmentation, road_centre):
     width, height = image.size
 
     # Find duplicated centres
@@ -791,12 +791,13 @@ def crop_panoramic_images(original_width, image, segmentation, road_centre):
     xrapneeded = int(width * 7 / 8)
 
     pickles = []
-    # Crop the panoramic image
+
+    # Crop the panoramic image based on road centers
     for centre in road_centre:
         # Wrapped all the way around
         if centre >= w98:
-            xlo = int(centre - w4/2)
-            cropped_image = image.crop((xlo, h4,  xlo+w4, h4 + hFor43))
+            xlo = int((width - centre) - w4/2)
+            cropped_image = image.crop((xlo, h4, xlo+w4, h4 + hFor43))
             cropped_segmentation = segmentation[h4:h4+hFor43, xlo:xlo+w4]
         
         # Image requires assembly of two sides
@@ -843,6 +844,27 @@ def crop_panoramic_images(original_width, image, segmentation, road_centre):
     return pickles
 
 
+def crop_panoramic_images(image, segmentation):
+    width, height = image.size
+
+    w4 = int(width / 4)
+    h4 = int(height / 4)
+    hFor43 = int(w4 * 3 / 4)
+
+    pickles = []
+
+    # Crop the panoramic image based on road centers
+    for w in range(4):
+        x_begin = w * w4
+        x_end = (w + 1) * w4
+        cropped_image = image.crop((x_begin, h4, x_end, h4 + hFor43))
+        cropped_segmentation = segmentation[h4:h4+hFor43, x_begin:x_end]
+
+        pickles.append(cropped_segmentation)
+    
+    return pickles
+
+
 def segment_images(image, processor, model):
     inputs = processor(images=image, return_tensors="pt")
     
@@ -860,84 +882,122 @@ def segment_images(image, processor, model):
 
 
 def get_GVI(segmentations):
-    green_percentage = 0
-    for segment in segmentations:
-        total_pixels = segment.numel()
-        vegetation_pixels = (segment == 8).sum().item()
-        green_percentage += vegetation_pixels / total_pixels
+    total_pixels = 0
+    vegetation_pixels = 0
     
-    return green_percentage / len(segmentations)
+    for segment in segmentations:
+        # Calculate the total number of pixels in the segmentation
+        total_pixels += segment.numel()
+        # Filter the pixels that represent vegetation (label 8) and count them
+        vegetation_pixels += (segment == 8).sum().item()
+    
+    # Calculate the percentage of green pixels in the segmentation
+    return vegetation_pixels / total_pixels if total_pixels else 0
 
 
-def process_images(image_url, is_panoramic, processor, model):
+def process_images(image_url, is_panoramic, crop_by_road_centres, processor, model):
     try:
-        image = Image.open(requests.get(image_url, stream=True).raw)
+        # Fetch and process the image
+        image = Image.open(requests.get(image_url, stream=True).raw)    
 
         if is_panoramic:
             # Get the size of the image
             width, height = image.size
 
-            # Crop the bottom 20% of the image to cut the band on the bottom of the panoramic image
+            # Crop the bottom 20% of the image to remove the band at the bottom of the panoramic image
             bottom_crop = int(height * 0.2)
             image = image.crop((0, 0, width, height - bottom_crop))
 
-        # Image segmentation
-        segmentation = segment_images(image, processor, model)
+            # Apply the semantic segmentation to the image
+            segmentation = segment_images(image, processor, model)
+            
+            if crop_by_road_centres:
+                # Create a widened panorama by wrapping the first 25% of the image onto the right edge
+                width, height = image.size
+                w4 = int(0.25 * width)
+                
+                segmentation_25 = segmentation[:, :w4]
+                # Concatenate the tensors along the first dimension (rows) to create the widened panorama with the segmentations
+                segmentation_road = torch.cat((segmentation, segmentation_25), dim=1)
 
-        if is_panoramic:
-            # Create a widened panorama by wrapping the first 25% of the image onto the right edge
-            width, height = image.size
-            w4 = int(0.25 * width)
+                cropped_image = image.crop((0, 0, w4, height))
+                widened_image = Image.new(image.mode, (width + w4, height))
+                widened_image.paste(image, (0, 0))
+                widened_image.paste(cropped_image, (width, 0))
 
-            segmentation_25 = segmentation[:, :w4]
-            # Concatenate the tensors along the first dimension (rows)
-            segmentation_road = torch.cat((segmentation, segmentation_25), dim=1)
-        else:
-            segmentation_road = segmentation
+                # Find the road centers to determine if the image is suitable for analysis
+                road_centre = find_road_centre(segmentation_road)
+                
+                # Crop the image and its segmentation based on the previously found road centers
+                pickles = crop_panoramic_images_roads(width, widened_image, segmentation_road, road_centre)
         
-        # Find roads to determine if the image is suitable for the analysis or not AND crop the panoramic images
-        road_centre = find_road_centre(segmentation_road)
-
-        if len(road_centre) > 0:
-            if is_panoramic:
-                pickles = crop_panoramic_images(width, image, segmentation_road, road_centre)
+                # Calculate the Green View Index (GVI) for the cropped segmentations
+                GVI = get_GVI(pickles)
             else:
-                pickles = [segmentation]
+                # Cut panoramic image in 4 equal parts
+                # Crop the image and its segmentation based on the previously found road centers
+                pickles = crop_panoramic_images(image, segmentation)
         
-            # Now we can get the Green View Index
-            GVI = get_GVI(pickles)
-            return [GVI, is_panoramic, False, False]
+                # Calculate the Green View Index (GVI) for the cropped segmentations
+                GVI = get_GVI(pickles)
+
+            return [GVI, True, False, False]
+
         else:
-            # There are not road centres, so the image is unusable
-            return [None, None, True, False]
+            # Apply the semantic segmentation to the image
+            segmentation = segment_images(image, processor, model)
+
+            # If the image is not panoramic, use the segmentation as it is
+            # Find the road centers to determine if the image is suitable for analysis
+            road_centre = find_road_centre(segmentation)
+
+            if len(road_centre) > 0:
+                # Calculate the Green View Index (GVI) for the cropped segmentations
+                GVI = get_GVI([segmentation])
+                return [GVI, False, False, False]
+            else:
+                # There are no road centers, so the image is not suitable for analysis
+                return [None, None, True, False]
     except:
+        # If there was an error while processing the image, set the "error" flag to true and continue with other images
         return [None, None, True, True]
 
-def download_image(id, geometry, image_id, is_panoramic, access_token, processor, model):
+# Download images
+def download_image(id, geometry, image_id, is_panoramic, crop_by_road_centres, access_token, processor, model):
+    # Check if the image id exists
     if image_id:
         try:
+            # Create the authorization header for the Mapillary API request
             header = {'Authorization': 'OAuth {}'.format(access_token)}
-        
+
+            # Build the URL to fetch the image thumbnail's original URL
             url = 'https://graph.mapillary.com/{}?fields=thumb_original_url'.format(image_id)
+            
+            # Send a GET request to the Mapillary API to obtain the image URL
             response = requests.get(url, headers=header)
             data = response.json()
+            
+            # Extract the image URL from the response data
             image_url = data["thumb_original_url"]
 
-            result = process_images(image_url, is_panoramic, processor, model)
+            # Process the downloaded image using the provided image URL, is_panoramic flag, processor, and model
+            result = process_images(image_url, is_panoramic, crop_by_road_centres, processor, model)
         except:
-            # There was an error during the downloading of the image
+            # An error occurred during the downloading of the image
             result = [None, None, True, True]
     else:
-        # The point doesn't have an image, then we set the missing value to true
+        # The point doesn't have an associated image, so we set the missing value flags
         result = [None, None, True, False]
-    
+
+    # Insert the coordinates (x and y) and the point ID at the beginning of the result list
+    # This helps us associate the values in the result list with their corresponding point
     result.insert(0, geometry)
     result.insert(0, id)
 
     return result
     
 
-def download_images_for_points(gdf, access_token, epsg, max_workers=4):
+def download_images_for_points(gdf, access_token, epsg, crop_by_road_centres, max_workers=4):
     processor, model = get_models()
     gdf_wgs = gdf.copy(deep=True).to_crs("EPSG:4326")
     # Create a lock object
@@ -949,7 +1009,7 @@ def download_images_for_points(gdf, access_token, epsg, max_workers=4):
 
         for _, row in gdf_wgs.iterrows():
             try:
-                futures.append(executor.submit(download_image, row["point_id"], row["geometry"], row["image_id"], row["is_panoramic"], access_token, processor, model))
+                futures.append(executor.submit(download_image, row["point_id"], row["geometry"], row["image_id"], row["is_panoramic"], crop_by_road_centres, access_token, processor, model))
             except Exception as e:
                 print(f"Exception occurred for row {row['id']}: {str(e)}")
         
