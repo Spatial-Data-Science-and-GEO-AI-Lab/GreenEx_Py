@@ -1,4 +1,4 @@
-**get_shortest_distance_greenspace(point_of_interest_file, crs_epsg=None, target_dist=300, greenspace_vector_file=None, distance_type="euclidean", destination="centroids", network_type=None, min_greenspace_area=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
+**get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_dist=300, greenspace_vector_file=None, distance_type="euclidean", destination="centroids", network_type=None, min_greenspace_area=None, plot_aoi=True, write_to_file=True, output_dir=os.getcwd())**
 
 > Assess whether or not greenspaces are located within a threshold distance for points of interest.
 
@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest_file *(string)* – the absolute or relative path to the file containing point or polygon geometries for which to compute the shortest distance to greenspaces.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries for which to compute the shortest distance to greenspaces.
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 
@@ -29,7 +29,7 @@
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest_file including column indicating whether or not a greenspace is within specified target distance. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
+>>> Dataframe as obtained from point_of_interest including column indicating whether or not a greenspace is within specified target distance. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
 
 >>Return type:	
 >>> Geodataframe

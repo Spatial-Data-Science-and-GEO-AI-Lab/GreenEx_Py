@@ -21,11 +21,14 @@ from datetime import timedelta
 from IPython.display import display
 
 ##### MAIN FUNCTIONS
-def get_shortest_distance_greenspace(point_of_interest_file, crs_epsg=None, target_dist=300, greenspace_vector_file=None, distance_type="euclidean",
+def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_dist=300, greenspace_vector_file=None, distance_type="euclidean",
                                      destination="centroids", network_type="all", min_greenspace_area=None, plot_aoi=True, write_to_file=True, 
                                      output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type

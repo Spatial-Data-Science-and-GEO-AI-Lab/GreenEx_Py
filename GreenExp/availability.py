@@ -37,11 +37,14 @@ from io import BytesIO
 from IPython.display import display
 
 ##### MAIN FUNCTIONS
-def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
                   buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, plot_aoi=True,
                   write_to_file=True, save_ndvi=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Verify that locations are either all provided using point geometries or all provided using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
@@ -301,11 +304,14 @@ def get_mean_NDVI(point_of_interest_file, ndvi_raster_file=None, crs_epsg=None, 
     
     return poi
 
-def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood",
+def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs_epsg=None, polygon_type="neighbourhood",
                               buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True,
                               write_to_file=True, save_lulc=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
-    poi = gpd.read_file(point_of_interest_file).head(50)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure that geometries in poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
@@ -553,11 +559,14 @@ def get_landcover_percentages(point_of_interest_file, landcover_raster_file=None
 
     return poi
 
-def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
                           buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True,
                           write_to_file=True, output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
@@ -756,11 +765,14 @@ def get_canopy_percentage(point_of_interest_file, canopy_vector_file, crs_epsg=N
 
     return poi
 
-def get_greenspace_percentage(point_of_interest_file, greenspace_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
+def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, 
                         buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, plot_aoi=True, write_to_file=True, 
                         output_dir=os.getcwd()):
     ### Step 1: Read and process user input, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type

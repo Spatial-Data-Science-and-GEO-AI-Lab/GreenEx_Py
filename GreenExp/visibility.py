@@ -47,11 +47,14 @@ import threading
 from tqdm.auto import tqdm
 
 ##### MAIN FUNCTIONS
-def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_file, dsm_raster_file, network_file=None, crs_epsg=None, 
+def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, dsm_raster_file, network_file=None, crs_epsg=None, 
                      polygon_type="neighbourhood", buffer_dist=None, viewing_dist=250, sample_dist=50, observer_height=1.7, write_to_file=True, 
                      output_dir=os.getcwd()):
     ### Step 1: Read and process user inputs, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
@@ -289,11 +292,14 @@ def get_viewshed_GVI(point_of_interest_file, greendata_raster_file, dtm_raster_f
     return poi, sampled_points_gdf
 
 
-def get_streetview_GVI(point_of_interest_file, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, workers=4,
+def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, polygon_type="neighbourhood", buffer_dist=None, workers=4,
                        crop_by_road_centres=True, network_file=None, write_to_file=True, output_dir=os.getcwd()):
     
     ### Step 1: Read and process user inputs, check conditions
-    poi = gpd.read_file(point_of_interest_file)
+    if isinstance(point_of_interest, gpd.GeoDataFrame):
+        poi = point_of_interest
+    else:
+        poi = gpd.read_file(point_of_interest)
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
