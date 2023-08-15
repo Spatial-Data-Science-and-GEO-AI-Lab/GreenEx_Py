@@ -33,7 +33,7 @@ def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_di
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -63,11 +63,11 @@ def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_di
 
     # Make sure target_dist is set
     if not isinstance(target_dist, int) or (not target_dist > 0):
-        raise TypeError("Please make sure that the target distance is set as a positive integer")
+        raise ValueError("Please make sure that the target distance is set as a positive integer")
 
     # Make sure distance_type has valid value
     if distance_type not in ["euclidean", "network"]:
-        raise TypeError("Please make sure that the distance_type argument is set to either 'euclidean' or 'network'")
+        raise ValueError("Please make sure that the distance_type argument is set to either 'euclidean' or 'network'")
 
     # Warn users for extensive processing times in case distance_type set to network
     if distance_type == "network":
@@ -75,12 +75,12 @@ def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_di
     
     # Make sure destination has valid value
     if destination not in ["centroids", "entrance"]:
-        raise TypeError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
+        raise ValueError("Please make sure that the destination argument is set to either 'centroids' or 'entrance'")
 
     # Make sure min_greenspace_area has valid value
     if min_greenspace_area is not None:
         if not isinstance(min_greenspace_area, int) or (not min_greenspace_area > 0):
-            raise TypeError("Please make sure that the min_greenspace_area is set as a positive integer")
+            raise ValueError("Please make sure that the min_greenspace_area is set as a positive integer")
 
     ### Step 2: Obtain bounding box in which all points of interest are located, including target_dist + 50% buffer to account for edge effects
     poi_polygon = sg.box(*poi.total_bounds).buffer(target_dist*1.5)

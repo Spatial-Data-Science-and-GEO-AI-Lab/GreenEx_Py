@@ -49,7 +49,7 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
@@ -96,7 +96,7 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
     # If buffer type is set to euclidean, make sure that the buffer distance is set
     if buffer_type == "euclidean":
             if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+                raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")  
     
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
@@ -111,7 +111,7 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
-                raise TypeError("Please make sure that one of the following requirements is met:\
+                raise ValueError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
 
@@ -316,7 +316,7 @@ def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
@@ -366,7 +366,7 @@ def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
+                raise ValueError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -375,7 +375,7 @@ def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
-                raise TypeError("Please make sure that one of the following requirements is met:\
+                raise ValueError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
             
@@ -571,7 +571,7 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
@@ -612,7 +612,7 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
     canopy_src = gpd.read_file(canopy_vector_file)
     # Make sure geometries in canopy file are of polygon or multipolygon as areas need to be calculated
     if not (canopy_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
-        raise ValueError("Please make sure all geometries of the tree canopy file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries of the tree canopy file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
 
     # Make sure canopy file has same CRS as poi file
     if not canopy_src.crs.to_epsg() == epsg:
@@ -637,13 +637,13 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
     # If buffer type is set to euclidean, make sure that the buffer distance is set
     if buffer_type == "euclidean":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+            raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")  
     
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
+                raise ValueError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -652,7 +652,7 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
-                raise TypeError("Please make sure that one of the following requirements is met:\
+                raise ValueError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
     
@@ -777,7 +777,7 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
     
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
@@ -821,13 +821,13 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
     # If buffer type is set to euclidean, make sure that the buffer distance is set
     if buffer_type == "euclidean":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")  
+            raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")  
     
     # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
     if buffer_type == "network":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
             if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
+                raise ValueError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
             else:
                 # Convert km per hour to m per minute
                 meters_per_minute = travel_speed * 1000 / 60 
@@ -836,7 +836,7 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
         else:
             # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
             if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
-                raise TypeError("Please make sure that one of the following requirements is met:\
+                raise ValueError("Please make sure that one of the following requirements is met:\
                                 \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
                                 \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
     
@@ -876,7 +876,7 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
         greenspace_src = gpd.read_file(greenspace_vector_file)
         # Make sure geometries are all polygons or multipolygons as areas should be calculated
         if not (greenspace_src['geometry'].geom_type.isin(['Polygon', 'MultiPolygon']).all()):
-            raise ValueError("Please make sure all geometries of the greenspace file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
+            raise TypeError("Please make sure all geometries of the greenspace file are of 'Polygon' or 'MultiPolygon' type and re-run the function")
         
         # Make sure CRS of greenspace file is same as CRS of poi file
         if not greenspace_src.crs.to_epsg() == epsg:

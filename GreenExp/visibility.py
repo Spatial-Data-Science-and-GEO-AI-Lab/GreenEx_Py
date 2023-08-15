@@ -59,7 +59,7 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -77,7 +77,7 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
@@ -94,19 +94,19 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
     # Validate user inputs
     if geom_type == "Point":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+            raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")
     
     # Make sure viewing_dist is set 
     if not isinstance(viewing_dist, int) or (not viewing_dist > 0):
-        raise TypeError("Please make sure that the viewing_dist argument is set to a positive integer")
+        raise ValueError("Please make sure that the viewing_dist argument is set to a positive integer")
 
     # Make sure sample_dist is set 
     if not isinstance(sample_dist, (float, int)) or (not sample_dist > 0):
-        raise TypeError("Please make sure that the sample_dist argument is set to a positive number")
+        raise ValueError("Please make sure that the sample_dist argument is set to a positive number")
     
     # Make sure observer_height is set
     if not isinstance(observer_height, (float, int)) or (not observer_height > 0):
-        raise TypeError("Please make sure that the observer_height argument is set to a positive number")
+        raise ValueError("Please make sure that the observer_height argument is set to a positive number")
 
     # Read DSM, DTM and greenspace rasters
     with rasterio.open(dsm_raster_file) as src:
@@ -218,7 +218,7 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
     if network_file is not None:
         # Make sure network file is provided either as geopackage or shapefile
         if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-            raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
+            raise TypeError("Please provide the network file in '.gpkg' or '.shp' format")
         elif network_file is not None and (os.path.splitext(network_file)[1] == ".gpkg"):
             graph_projected_edges = gpd.read_file(network_file, layer='edges')
         else: 
@@ -304,7 +304,7 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
     if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise ValueError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -322,7 +322,7 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
     # In case of house polygons, transform to centroids
     if geom_type == "Polygon":
         if polygon_type not in ["neighbourhood", "house"]:
-            raise TypeError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
             print("Changing geometry type to Point by computing polygon centroids...")
             poi['geometry'] = poi['geometry'].centroid
@@ -339,15 +339,15 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
     # Make sure buffer distance is set in case geometries of poi file are of point type
     if geom_type == "Point":
         if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            raise TypeError("Please make sure that the buffer_dist argument is set to a positive integer")
+            raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")
 
     # Make sure Mapillary API token is provided
     if access_token is None or not access_token.startswith("MLY"):
-        raise TypeError("Please make sure that a valid access token for Mapillary is provided")
+        raise ValueError("Please make sure that a valid access token for Mapillary is provided")
 
     # Make sure number of workers is valid value
     if not isinstance(workers, int) or (not workers > 0):
-        raise TypeError("Please make sure that the workers argument is set to a positive integer")
+        raise ValueError("Please make sure that the workers argument is set to a positive integer")
     
     # Determine area of interest by taking bounding box of poi file, incl. buffer if specified
     if buffer_dist is None:
@@ -364,7 +364,7 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
     if network_file is not None:
         # Make sure network file is either provided as geopackage or shapefile
         if os.path.splitext(network_file)[1] not in [".gpkg", ".shp"]:
-            raise ValueError("Please provide the network file in '.gpkg' or '.shp' format")
+            raise TypeError("Please provide the network file in '.gpkg' or '.shp' format")
         elif network_file is not None and (os.path.splitext(network_file)[1] == ".gpkg"):
             network_edges = gpd.read_file(network_file, layer='edges')
         else: 
