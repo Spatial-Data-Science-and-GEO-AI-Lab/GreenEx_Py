@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries for which to compute the shortest distance to greenspaces.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries for which to compute the shortest distance to greenspaces.
 
 >> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
 

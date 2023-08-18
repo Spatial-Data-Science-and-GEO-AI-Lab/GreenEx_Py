@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute mean NDVI values.
 
 >> - ndvi_raster_file *(string)* – optional, the absolute or relative path to the file containing the NDVI values in raster format. If not provided, the NDVI raster will be obtained by using satellite images from the planetary computer.
 

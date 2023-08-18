@@ -55,11 +55,12 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -75,7 +76,7 @@ def get_viewshed_GVI(point_of_interest, greendata_raster_file, dtm_raster_file, 
         epsg = poi.crs.to_epsg()
 
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
@@ -300,11 +301,12 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -320,7 +322,7 @@ def get_streetview_GVI(point_of_interest, access_token=None, crs_epsg=None, poly
         epsg = poi.crs.to_epsg()
 
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":

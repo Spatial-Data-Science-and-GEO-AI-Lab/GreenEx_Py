@@ -29,11 +29,12 @@ def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_di
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+        
     # Make sure geometries in poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
 
     # Make sure CRS of poi file is projected rather than geographic
     if not poi.crs.is_projected:
@@ -49,7 +50,7 @@ def get_shortest_distance_greenspace(point_of_interest, crs_epsg=None, target_di
         epsg = poi.crs.to_epsg()
 
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         print("Changing geometry type to Point by computing polygon centroids so that network distance can be retrieved...")
         poi['geometry'] = poi['geometry'].centroid
         print("Done \n")

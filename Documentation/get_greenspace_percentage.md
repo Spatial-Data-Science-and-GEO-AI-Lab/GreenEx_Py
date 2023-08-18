@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries around and for which to compute the percentage of greenspace cover.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute the percentage of greenspace cover.
 
 >> - greenspace_vector_file *(string)* – optional, the absolute or relative path to the vector file containing greenspace data. Note that geometries should be polygon or multipolygon. In case no file is provided, greenspace data will be retrieved from OpenStreetMap.
 

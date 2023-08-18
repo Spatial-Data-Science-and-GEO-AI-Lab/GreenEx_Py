@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries around and for which to calculate the percentage of area covered by each landcover class.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to calculate the percentage of area covered by each landcover class.
 
 >> - landcover_raster_file *(string)* – optional, the absolute or relative path to the raster file containing a landcover classification map, where each pixel is assigned a landcover class. If not provided, the landcover map from the European Space Agency (ESA) will be retrieved through the planetary computer. Note that this map may be outdated and contain missing values. 
 

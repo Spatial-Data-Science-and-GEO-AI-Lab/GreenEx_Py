@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries around and for which to compute the average GVI value.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute the average GVI value.
 
 >> - greendata_raster_file *(string)* – the absolute or relative path to the boolean raster file indicating which cells are considered greenspace and which are not.
 

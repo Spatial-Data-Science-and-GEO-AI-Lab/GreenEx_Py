@@ -6,7 +6,7 @@
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or polygon geometries around and for which to compute the canopy cover percentage.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute the canopy cover percentage.
 
 >> - canopy_vector_file *(string)* – the absolute or relative path to the vector file containing tree canopy data. Note that geometries should be polygon or multipolygon.  
 

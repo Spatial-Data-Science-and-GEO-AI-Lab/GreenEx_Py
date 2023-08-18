@@ -45,14 +45,15 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Verify that locations are either all provided using point geometries or all provided using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
     
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
@@ -218,7 +219,7 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
                 raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
             
             # If poi file still contains polygon geometries, compute centroids so that isochrone maps can be created
-            if geom_type == "Polygon":
+            if geom_type == "Polygon" or geom_type == "MultiPolygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n")
@@ -312,14 +313,15 @@ def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Make sure that geometries in poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
 
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
@@ -467,14 +469,14 @@ def get_landcover_percentages(point_of_interest, landcover_raster_file=None, crs
                 raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
 
             # In case poi still contains polygon geometries, compute centroids so that isochrones can be created
-            if geom_type == "Polygon":
+            if geom_type == "Polygon" or geom_type == "MultiPolygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n")  
             
             print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
             start_network_retrieval = time()
-                # Transform bounds polygon of poi file to 4326 for OSM
+            # Transform bounds polygon of poi file to 4326 for OSM
             polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326")
             # Extract polygon in EPSG 4326    
             wgs_polygon = polygon_gdf_wgs['geometry'].values[0]     
@@ -567,14 +569,15 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
 
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
@@ -677,7 +680,7 @@ def get_canopy_percentage(point_of_interest, canopy_vector_file, crs_epsg=None, 
                 raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
                    
             # In case poi still contain polygon geometries, compute centroids so that isochrones can be created
-            if geom_type == "Polygon":
+            if geom_type == "Polygon" or geom_type == "MultiPolygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrone can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n") 
@@ -773,14 +776,15 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
         poi = point_of_interest
     else:
         poi = gpd.read_file(point_of_interest)
+
     # Make sure geometries of poi file are either all provided using point geometries or all using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon'):
+    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
         geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type or all geometries are of 'Polygon' type and re-run the function")
+        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
     
     # In case of house polygons, transform to centroids
-    if geom_type == "Polygon":
+    if geom_type == "Polygon" or geom_type == "MultiPolygon":
         if polygon_type not in ["neighbourhood", "house"]:
             raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
         if polygon_type == "house":
@@ -914,7 +918,7 @@ def get_greenspace_percentage(point_of_interest, greenspace_vector_file=None, cr
                 raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
             
             # If poi still contains polygon geometries, compute centroids so that isochrones can be created
-            if geom_type == "Polygon":
+            if geom_type == "Polygon" or geom_type == "MultiPolygon":
                 print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
                 poi['geometry'] = poi['geometry'].centroid
                 print("Done \n") 
