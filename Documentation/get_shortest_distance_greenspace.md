@@ -14,7 +14,7 @@
 
 >> - greenspace_vector_file *(string)* – optional, the absolute or relative path to the vector file containing greenspace data. In case no file is provided, greenspace data will be retrieved from OpenStreetMap.
 
->> - distance_type *(string {"euclidean", "network"})* – the way in which the shortest distance to a greenspace should be calculated, straight line distance (euclidean) or network distance (network). By default, argument is set to euclidean. Note that if set to network, processing times might increase significantly in case many points/polygons of interest are provided in the point_of_interest file.
+>> - distance_type *(string {"euclidean", "network"})* – the way in which the shortest distance to a greenspace should be calculated, straight line distance (euclidean) or network distance (network). By default, argument is set to euclidean. Note that if set to network, processing times might increase significantly in case many points/polygons of interest are provided in the point_of_interest data.
 
 >> - destination *(string {"centroids", "entrance"})* – the destination points for the greenspaces. If "entrance", distances will be computed between the point location and the network nodes that are within 20 meters of the greenspace boundaries - therefore considered as pseudo-entry points.
 
