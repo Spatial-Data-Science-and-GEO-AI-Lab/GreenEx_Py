@@ -8,7 +8,7 @@
 
 >> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries for which to compute the shortest distance to greenspaces.
 
->> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
+>> - crs_epsg *(int)* - optional, to be defined in case provided point of interest data has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of data is geographic, CRS will be transformed to EPSG 3395 by default. 
 
 >> - target_dist *(int)* – threshold distance in meters surrounding the point locations in which greenspaces should be located. If no greenspace destination is detected within threshold distance for the current parameters, the distance to greenspace will be set to the given threshold distance. The actual distance to the nearest greenspace cannot always be retrieved properly due to edge effects concerning the area for which the network and greenspaces are retrieved through OpenStreetMap. A warning is also provided in this case, as it should be considered for further analysis. 
 
