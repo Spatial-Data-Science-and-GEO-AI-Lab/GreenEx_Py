@@ -56,7 +56,7 @@ For a more detailed overview of the function arguments, requirements and output,
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_greenspace_percentage](#get_greenspace_percentage). 
 <br><br>
-All functions will return a geodataframe that contains points/polygons/places of interest (PoI), as provided/indicated by the user, and the resulting values of the function involved. PoIs may for example represent house addresses, neighbourhoods or streets. The results' values are based on an area of interest (AoI) which can be composed in three distinct ways;
+All functions will return a geodataframe that contains points/polygons/places of interest (PoI), as provided/indicated by the user, and the resulting values of the function involved. PoIs may for example represent house addresses or neighbourhoods. The results' values are based on an area of interest (AoI) which can be composed in three distinct ways;
 
 - AoI(s) provided by user (i.e. polygon geometries) and without applying a buffer zone
 - AoI(s) created by defining Euclidean buffer
@@ -136,7 +136,7 @@ Calculating mean NDVI values...
 Done, running time: 0:03:17.288334 
 ```
 
-![NDVI query](Plots/ndvi_osmquery.png)
+![NDVI query](Plots/ndvi_osmquery.PNG)
 
 
 |      | name     | highway      | access  | oneway | reversed      | length  | geometry                                          | maxspeed | width | bridge | service | lanes | tunnel | id   | mean_NDVI | std_NDVI |
