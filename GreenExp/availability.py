@@ -16,6 +16,7 @@ import pyproj
 import shapely.geometry as sg
 from shapely.ops import transform
 import folium
+import branca.colormap as cmp
 
 # Geospatial data access and catalogs
 import pystac_client
@@ -43,29 +44,21 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
     ### Step 1: Read and process user inputs, check conditions
     if isinstance(point_of_interest, gpd.GeoDataFrame):
         poi = point_of_interest
-    else:
+    elif os.path.isfile(point_of_interest):
         poi = gpd.read_file(point_of_interest)
-
-    # Verify that locations are either all provided using point geometries or all provided using polygon geometries
-    if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
-        geom_type = poi.iloc[0]['geometry'].geom_type
     else:
-        raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
-    
-    # In case of house polygons, transform to centroids
-    if geom_type == "Polygon" or geom_type == "MultiPolygon":
-        if polygon_type not in ["neighbourhood", "house"]:
-            raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
-        if polygon_type == "house":
-            print("Changing geometry type to Point by computing polygon centroids...")
-            poi['geometry'] = poi['geometry'].centroid
-            geom_type = poi.iloc[0]['geometry'].geom_type
-            print("Done \n")
-
-    # Make sure buffer distance and type are set in case of point geometries
-    if geom_type == "Point":
-        if buffer_type not in ["euclidean", "network"]:
-            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+            raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")
+        print("Retrieving street network through OpenStreetMap...")
+        start_streetnetwork_retrieval = time()
+        # Retrieve graph in WGS84
+        poi_graph_wgs = ox.graph_from_place(point_of_interest).to_undirected()
+        # Extract edges and store in geodataframe
+        poi = ox.graph_to_gdfs(poi_graph_wgs, nodes=False, edges=True).reset_index()
+        poi = poi.drop(columns=['u', 'v', 'key', 'osmid'])
+        end_streetnetwork_retrieval = time()
+        elapsed_streetnetwork_retrieval = end_streetnetwork_retrieval - start_streetnetwork_retrieval
+        print(f"Done, running time: {str(timedelta(seconds=elapsed_streetnetwork_retrieval))} \n")
 
     # Make sure CRS is projected rather than geographic
     if not poi.crs.is_projected:
@@ -81,7 +74,66 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
         epsg = poi.crs.to_epsg()
 
     # Create epsg transformer to use planetary computer and OSM
-    epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326") 
+    epsg_transformer = pyproj.Transformer.from_crs(f"epsg:{epsg}", "epsg:4326")
+
+    if isinstance(point_of_interest, gpd.GeoDataFrame) or os.path.isfile(point_of_interest):
+        # Verify that locations are either all provided using point geometries or all provided using polygon geometries
+        if all(poi['geometry'].geom_type == 'Point') or all(poi['geometry'].geom_type == 'Polygon') or all(poi['geometry'].geom_type == 'MultiPolygon'):
+            geom_type = poi.iloc[0]['geometry'].geom_type
+        else:
+            raise TypeError("Please make sure all geometries are of 'Point' type, all geometries are of 'Polygon' type or all geometries are of 'MultiPolygon' type and re-run the function")
+        
+        # In case of house polygons, transform to centroids
+        if geom_type == "Polygon" or geom_type == "MultiPolygon":
+            if polygon_type not in ["neighbourhood", "house"]:
+                raise ValueError("Please make sure that the polygon_type argument is set to either 'neighbourhood' or 'house'")
+            if polygon_type == "house":
+                print("Changing geometry type to Point by computing polygon centroids...")
+                poi['geometry'] = poi['geometry'].centroid
+                geom_type = poi.iloc[0]['geometry'].geom_type
+                print("Done \n")
+
+        # Make sure buffer distance and type are set in case of point geometries
+        if geom_type == "Point":
+            if buffer_type not in ["euclidean", "network"]:
+                raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function") 
+
+        # Make sure the buffer_type argument has a valid value if not None
+        if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
+            raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
+
+        # If buffer type is set to euclidean, make sure that the buffer distance is set
+        if buffer_type == "euclidean":
+                if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+                    raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")  
+        
+        # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
+        if buffer_type == "network":
+            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
+                if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
+                    raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
+                else:
+                    # Convert km per hour to m per minute
+                    meters_per_minute = travel_speed * 1000 / 60 
+                    # Calculate max distance that can be travelled based on argument specified by user
+                    buffer_dist = trip_time * meters_per_minute 
+            else:
+                # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
+                if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
+                    raise ValueError("Please make sure that one of the following requirements is met:\
+                                    \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
+                                    \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
+
+        # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
+        if buffer_dist is None:
+            poi_polygon = sg.box(*poi.total_bounds)
+        else:
+            poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
+    else:
+        # Set buffer of 10m around the OSM network edges
+        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
+        # Determine bounding box of area of interest
+        poi_polygon = sg.box(*aoi_gdf.total_bounds)
 
     # Make sure poi dataframe contains ID column
     if "id" in poi.columns:
@@ -89,38 +141,6 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
             poi['id'] = poi['id'].fillna(pd.Series(range(1, len(poi) + 1))).astype(int)
     else:
         poi['id'] = pd.Series(range(1, len(poi) + 1)).astype(int)
-
-    # Make sure the buffer_type argument has a valid value if not None
-    if buffer_type is not None and buffer_type not in ["euclidean", "network"]:
-        raise ValueError("Please make sure that the buffer_type argument is set to either 'euclidean' or 'network' and re-run the function")
-
-    # If buffer type is set to euclidean, make sure that the buffer distance is set
-    if buffer_type == "euclidean":
-            if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-                raise ValueError("Please make sure that the buffer_dist argument is set to a positive integer")  
-    
-    # If buffer type is set to network, make sure that either the buffer distance is set or both trip_time and travel_speed are set
-    if buffer_type == "network":
-        if not isinstance(buffer_dist, int) or (not buffer_dist > 0):
-            if not isinstance(travel_speed, (float, int)) or (not travel_speed > 0) or (not isinstance(trip_time, int) or (not trip_time > 0)):
-                raise TypeError("Please make sure that either the buffer_dist argument is set to a positive integer or both the travel_speed and trip_time are set to positive numbers")
-            else:
-                # Convert km per hour to m per minute
-                meters_per_minute = travel_speed * 1000 / 60 
-                # Calculate max distance that can be travelled based on argument specified by user
-                buffer_dist = trip_time * meters_per_minute 
-        else:
-            # Buffer_dist and combination of travel_speed and trip_time cannot be set at same time
-            if isinstance(travel_speed, (float, int)) and travel_speed > 0 and isinstance(trip_time, int) and trip_time > 0:
-                raise ValueError("Please make sure that one of the following requirements is met:\
-                                \n1. If buffer_dist is set, travel_speed and trip_time should not be set\
-                                \n2. If travel_speed and trip_time are set, buffer_dist shoud not be set")
-
-    # Create polygon in which all pois are located to extract data from PC/OSM, incl. buffer if specified
-    if buffer_dist is None:
-        poi_polygon = sg.box(*poi.total_bounds)
-    else:
-        poi_polygon = sg.box(*poi.total_bounds).buffer(buffer_dist*1.10) # Add 10% to account for edge effects
 
     # Retrieve NDVI raster, use planetary computer if not provided by user 
     if ndvi_raster_file is None:
@@ -164,7 +184,7 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
         print(f"Information on the satellite image retrieved from planetary computer, used to calculate NDVI values:\
               \n   Date on which image was generated: {selected_item.properties['s2:generation_time']}\
               \n   Percentage of cloud cover: {selected_item.properties['eo:cloud_cover']}\
-              \n   Percentage of pixels with missing data {selected_item.properties['s2:nodata_pixel_percentage']}")
+              \n   Percentage of pixels with missing data: {selected_item.properties['s2:nodata_pixel_percentage']}")
 
         # Save satellite image that was used in case user specifies so
         if save_ndvi:
@@ -205,53 +225,54 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
                 else:
                     print("Warning: Not all polygons of interest are completely within the area covered by the NDVI file provided, results will be based on intersecting part of polygons involved \n") 
 
-    ### Step 2: Construct the Area of Interest based on the arguments as defined by user
-    if buffer_type is None:
-        # Buffer type == None implies that provided polygons serve as areas of interest
-        aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
-    else:
-        if buffer_type == "euclidean":
-            # Create area of interest based on euclidean distance
-            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
+    if isinstance(point_of_interest, gpd.GeoDataFrame) or os.path.isfile(point_of_interest):
+        ### Step 2: Construct the Area of Interest based on the arguments as defined by user
+        if buffer_type is None:
+            # Buffer type == None implies that provided polygons serve as areas of interest
+            aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'])
         else:
-            # Make sure network type argument has valid value
-            if network_type not in ["walk", "bike", "drive", "all"]:
-                raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
-            
-            # If poi file still contains polygon geometries, compute centroids so that isochrone maps can be created
-            if geom_type == "Polygon" or geom_type == "MultiPolygon":
-                print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
-                poi['geometry'] = poi['geometry'].centroid
-                print("Done \n")
-            
-            print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
-            start_network_retrieval = time()
-            # Transform total bounds polygon of poi file to 4326 for OSM
-            polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
-            # Extract polygon in EPSG 4326 
-            wgs_polygon = polygon_gdf_wgs['geometry'].values[0]        
-            # Retrieve street network for desired network type
-            graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
-            # Project street network graph back to original poi CRS
-            graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
-            end_network_retrieval = time()
-            elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
-            print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")             
+            if buffer_type == "euclidean":
+                # Create area of interest based on euclidean distance
+                aoi_gdf = gpd.GeoDataFrame(geometry=poi['geometry'].buffer(buffer_dist))
+            else:
+                # Make sure network type argument has valid value
+                if network_type not in ["walk", "bike", "drive", "all"]:
+                    raise ValueError("Please make sure that the network_type argument is set to either 'walk', 'bike, 'drive' or 'all', and re-run the function")
+                
+                # If poi file still contains polygon geometries, compute centroids so that isochrone maps can be created
+                if geom_type == "Polygon" or geom_type == "MultiPolygon":
+                    print("Changing geometry type to Point by computing polygon centroids so that isochrones can be retrieved...")
+                    poi['geometry'] = poi['geometry'].centroid
+                    print("Done \n")
+                
+                print("Retrieving network within total bounds of point(s) of interest, extended by buffer distance as specified...")
+                start_network_retrieval = time()
+                # Transform total bounds polygon of poi file to 4326 for OSM
+                polygon_gdf_wgs = gpd.GeoDataFrame(geometry=[poi_polygon], crs=f"EPSG:{epsg}").to_crs("EPSG:4326") 
+                # Extract polygon in EPSG 4326 
+                wgs_polygon = polygon_gdf_wgs['geometry'].values[0]        
+                # Retrieve street network for desired network type
+                graph = ox.graph_from_polygon(wgs_polygon, network_type=network_type) 
+                # Project street network graph back to original poi CRS
+                graph_projected = ox.project_graph(graph, to_crs=f"EPSG:{epsg}") 
+                end_network_retrieval = time()
+                elapsed_network_retrieval = end_network_retrieval - start_network_retrieval
+                print(f"Done, running time: {str(timedelta(seconds=elapsed_network_retrieval))} \n")             
 
-            # Compute isochrone areas for points of interest
-            aoi_geometry = []
-            for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
-                # Find node which is closest to point location as base for next steps
-                center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
-                # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
-                subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
-                # Compute isochrones, see separate function for line by line explanation
-                isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
-                aoi_geometry.append(isochrone_poly)
+                # Compute isochrone areas for points of interest
+                aoi_geometry = []
+                for geom in tqdm(poi['geometry'], desc = 'Retrieving isochrone for point(s) of interest'):
+                    # Find node which is closest to point location as base for next steps
+                    center_node = ox.distance.nearest_nodes(graph_projected, geom.x, geom.y) 
+                    # Create sub graph of the street network which contains only parts which can be reached within specified travel parameters
+                    subgraph = nx.ego_graph(graph_projected, center_node, radius=buffer_dist, distance="length") 
+                    # Compute isochrones, see separate function for line by line explanation
+                    isochrone_poly = make_iso_poly(graph_projected=graph_projected, subgraph=subgraph) 
+                    aoi_geometry.append(isochrone_poly)
 
-            # Create geodataframe of isochrone geometries
-            aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
-            print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")             
+                # Create geodataframe of isochrone geometries
+                aoi_gdf = gpd.GeoDataFrame(geometry=aoi_geometry, crs=f"EPSG:{epsg}")
+                print("Note: creation of isochrones based on code by gboeing, source: https://github.com/gboeing/osmnx-examples/blob/main/notebooks/13-isolines-isochrones.ipynb \n")             
     
     ### Step 3: Calculate mean NDVI values and write results to file
     print("Calculating mean NDVI values...")
@@ -284,21 +305,36 @@ def get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polyg
         poi_total_bounds_wgs = poi.to_crs("EPSG:4326").total_bounds
         # Calculate the center coordinates
         center_coords = [(poi_total_bounds_wgs[1] + poi_total_bounds_wgs[3]) / 2, (poi_total_bounds_wgs[0] + poi_total_bounds_wgs[2]) / 2]
-        # Create a base map
-        map = folium.Map(location=center_coords, zoom_start=10)
         # Create GeoJSON layers from the GeoDataFrames
         poi_column_names = list(filter(lambda col: col != 'geometry', poi.columns))
-        folium.GeoJson(poi.to_crs("EPSG:4326"),
-                       name="PoI",
-                       tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
-                       style_function=lambda feature: {'color': 'black'}).add_to(map)
-        folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
-                       name="Buffer zones",
-                       style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
+
+        if isinstance(point_of_interest, gpd.GeoDataFrame) or os.path.isfile(point_of_interest):
+            # Create a base map
+            map = folium.Map(location=center_coords, zoom_start=10)
+            folium.GeoJson(poi.to_crs("EPSG:4326"),
+                        name="PoI",
+                        tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                        style_function=lambda feature: {'color': 'black'}).add_to(map)
+            folium.GeoJson(aoi_gdf.to_crs("EPSG:4326"),
+                        name="Buffer zones",
+                        style_function=lambda feature: {'fillColor': 'blue', 'color': 'blue', 'fillOpacity': 0.3}).add_to(map)
+            map_title = 'Areas of interest used for mean NDVI calculation'
+        else:
+            # Create color map for NDVI values in map
+            linear = cmp.LinearColormap(['white', 'lightgreen', 'forestgreen', 'darkgreen'], vmin=0, vmax=1, caption='Mean NDVI')
+            # Create a base map
+            map = folium.Map(location=center_coords, zoom_start=15, tiles="cartodb positron")
+            folium.GeoJson(poi.to_crs("EPSG:4326"),
+                        name="Streets",
+                        tooltip=folium.features.GeoJsonTooltip(fields=poi_column_names),
+                        style_function=lambda feature: {'color': linear(feature['properties']['mean_NDVI']), 'weight': 5, 'fillColor': linear(feature['properties']['mean_NDVI']), 'fillOpacity': 0.8}).add_to(map)
+            map_title = f'Mean NDVI for street network of {point_of_interest}'
+            # Add the color legend to the map
+            linear.caption = "Mean NDVI"
+            linear.add_to(map)
         # Add layer control to the map
         folium.LayerControl().add_to(map)
         # Set the title
-        map_title = 'Areas of interest used for mean NDVI calculation'
         map.get_root().html.add_child(folium.Element(f'<h3 style="text-align:center">{map_title}</h3>'))
         # Display map
         display(map)

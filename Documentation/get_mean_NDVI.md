@@ -1,22 +1,22 @@
 **get_mean_NDVI(point_of_interest, ndvi_raster_file=None, crs_epsg=None, polygon_type="neighbourhood", buffer_type=None, buffer_dist=None, network_type=None, trip_time=None, travel_speed=None, year=datetime.now().year, plot_aoi=True, write_to_file=True, save_ndvi=True, output_dir=os.getcwd())**
 
-> Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas or points of interest.
+> Retrieve the mean Normalised Difference Vegetation Index (NDVI) for areas, points or places of interest.
 
 > Function to calculate mean NDVI values surrounding geographic locations or within geographic areas. The surroundings can be defined by a euclidean (straight-line) or network (travel distance considering transportation infrastructure) buffer distance. 
 
 >> Parameters: 
 
->> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute mean NDVI values.
+>> - point_of_interest *(string)* – either the absolute/relative path to the file or the geodataframe containing point or (multi)polygon geometries around and for which to compute mean NDVI values. Alternatively, an OpenStreetMap query may be given for a city, village, neighbourhood etc. to extract the mean NDVI values for its street network.
 
 >> - ndvi_raster_file *(string)* – optional, the absolute or relative path to the file containing the NDVI values in raster format. If not provided, the NDVI raster will be obtained by using satellite images from the planetary computer.
 
->> - crs_epsg *(int)* - optional, to be defined in case provided point of interest file has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of file is geographic, CRS will be transformed to EPSG 3395 by default. 
+>> - crs_epsg *(int)* - optional, to be defined in case provided point of interest data has geographic CRS rather than projected. CRS will be transformed to the projected CRS that is specified. In case crs_epsg is not specified and CRS of data is geographic, CRS will be transformed to EPSG 3395 by default. In case an OpenStreetMap query is passed to the point_of_interest parameter, it is recommended to pass a projected CRS to the crs_epsg parameter as the street network is obtained through OSM with a geographic CRS. If not given, EPSG 3395 will be used by default.
 
 >> - polygon_type *(string {"neighbourhood", "house"})* - to be defined in case point_of_interest contains polygon geometries. If set to "house", polygon geometries will be converted to point geometries.
 
 >> - buffer_type *(string {"euclidean", "network"})* – to be defined in case point_of_interest contains point geometries or polygon geometries which represent houses and optional in case point_of_interest contains polygon geometries which represent neighbourhoods, the way in which the area of interest should be composed. If "euclidean", a straight line distance will be used based on the buffer distance as specified by the buffer_dist argument. If "network", isochrone maps will be composed based on the buffer distance or combination of trip_time and travel_speed.
 
->> - buffer_dist *(int)* – to be defined if buffer_type is set to "euclidean" and optional if buffer_type is set to "network". The distance in meters that will be used to compute the area of interest surrounding the geometries of the point_of_interest data. NOTE: In case buffer_type is set to "network", buffer_dist should not be specified if travel_speed and trip_time arguments are specified.
+>> - buffer_dist *(int)* – to be defined if OSM query is passed to point_of_interest parameter, the distance in meters surrounding the streets for which mean NDVI will be computed. Otherwise, to be defined if buffer_type is set to "euclidean" and optional if buffer_type is set to "network". The distance in meters that will be used to compute the area of interest surrounding the geometries of the point_of_interest data. NOTE: In case buffer_type is set to "network", buffer_dist should not be specified if travel_speed and trip_time arguments are specified.
 
 >> - network_type *(string {"walk", "bike", "drive", "all"})* – to be defined in case buffer_type is set to "network", the travel mode for which the network needs to be retrieved from OpenStreetMap.
 
@@ -35,7 +35,7 @@
 >> - output_dir *(string)* – the absolute or relative path to the directory in which the output file will be written in case write_to_file is set to TRUE. If not specified, the current working directory will serve as default.
 
 >>Returns:	
->>> Dataframe as obtained from point_of_interest including column for mean NDVI value(s) and corresponding standard deviation. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
+>>> Dataframe as obtained from/based on point_of_interest including column for mean NDVI value(s) and corresponding standard deviation. Dataframe will also be written to new file in specified directory (see output_dir argument) if write_to_file set to TRUE. 
 
 >>Return type:	
 >>> Geodataframe

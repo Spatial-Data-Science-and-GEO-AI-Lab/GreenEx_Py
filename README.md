@@ -56,7 +56,7 @@ For a more detailed overview of the function arguments, requirements and output,
 ## *Availability*
 Greenspace availability is measured using four functions; [get_mean_NDVI](#get_mean_NDVI), [get_landcover_percentages](#get_landcover_percentages), [get_canopy_percentage](#get_canopy_percentage) and [get_greenspace_percentage](#get_greenspace_percentage). 
 <br><br>
-All functions will return a geodataframe that contains the original points/polygons of interest (PoI), as provided by the user, and the resulting values of the function involved. PoIs may for example represent house addresses or neighbourhoods. The results' values are based on an area of interest (AoI) which can be composed in three distinct ways;
+All functions will return a geodataframe that contains points/polygons/places of interest (PoI), as provided/indicated by the user, and the resulting values of the function involved. PoIs may for example represent house addresses, neighbourhoods or streets. The results' values are based on an area of interest (AoI) which can be composed in three distinct ways;
 
 - AoI(s) provided by user (i.e. polygon geometries) and without applying a buffer zone
 - AoI(s) created by defining Euclidean buffer
@@ -73,13 +73,14 @@ To illustrate the differences between the latter two, the following figure was g
 The four availability functions are briefly described hereunder. 
 
 ### **get_mean_NDVI**
-This function calculates the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. The PoIs should be provided either in a vector file format or a geodataframe, ideally with a projected CRS.
+This function may calculate the mean Normalized Difference Vegetation Index (NDVI) within an area of interest that is defined for/by the PoIs provided by the user. In this case, the PoIs should be provided either in a vector file format or a geodataframe, ideally with a projected CRS.
+Alternatively, users may provide an OpenStreetMap query (city, village, neighbourhood etc.) for which the street network will be extracted. The mean NDVI values will then be computed for each of these streets. 
 
 Additionally, users may provide a raster file with NDVI values. If not provided, sentinel-2-l2a data from [Planetary Computer](https://planetarycomputer.microsoft.com/) will be used to compute the NDVI raster. The NDVI raster which was created for the three locations of the example data is included in the following figure;
 
 ![NDVI raster](Plots/ndvi.png)
 
-Now, the mean NDVI for the designated areas can be calculated by applying the following code;
+Now, the mean NDVI for these designated areas can be calculated by applying the following code;
 
 ```python
 availability.get_mean_NDVI(point_of_interest=path+"AMS_example_data.gpkg",
@@ -108,6 +109,46 @@ Function output;
 | 0 | POINT (118883.345 485054.641) | 1  | 0.204     | 0.136    |
 | 1 | POINT (118246.855 488082.089) | 2  | 0.187     | 0.129    |
 | 2 | POINT (122483.550 487728.517) | 3  | 0.047     | 0.073    |
+
+
+In case an OpenStreetMap query is passed to the function, e.g. Utrecht Science Park, Utrecht, the Netherlands, the code and output will look as follows;
+
+```python
+availability.get_mean_NDVI(point_of_interest="Utrecht Science Park, Utrecht, Netherlands",
+                           crs_epsg=28992,
+                           buffer_dist=10,
+                           write_to_file=False,
+                           save_ndvi=False)
+
+# Information provided while function was running
+Retrieving street network through OpenStreetMap...
+Done, running time: 0:00:07.976477 
+
+Warning: The CRS of the PoI dataset is currently geographic, therefore it will now be projected to EPSG:28992 as specified
+Retrieving NDVI raster through planetary computer...
+Information on the satellite image retrieved from planetary computer, used to calculate NDVI values:              
+   Date on which image was generated: 2023-06-14T18:28:34.470534Z              
+   Percentage of cloud cover: 0.010272              
+   Percentage of pixels with missing data: 1.3e-05
+Done, running time: 0:00:02.399560 
+
+Calculating mean NDVI values...
+Done, running time: 0:03:17.288334 
+```
+
+![NDVI query](Plots/ndvi_osmquery.png)
+
+
+|      | name     | highway      | access  | oneway | reversed      | length  | geometry                                          | maxspeed | width | bridge | service | lanes | tunnel | id   | mean_NDVI | std_NDVI |
+|------|----------|--------------|---------|--------|---------------|---------|---------------------------------------------------|----------|-------|--------|---------|-------|--------|------|-----------|----------|
+| 0    | Limalaan | unclassified | private | False  | True          | 102.988 | LINESTRING (140825.144 454765.636, 140928.453 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 1    | 0.536     | 0.076    |
+| 1    | Limalaan | unclassified | private | False  | [False, True] | 86.599  | LINESTRING (140825.507 454852.284, 140825.459 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 2    | 0.401     | 0.086    |
+| 2    | Limalaan | unclassified | private | False  | True          | 56.267  | LINESTRING (140928.453 454765.788, 140984.896 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 3    | 0.429     | 0.070    |
+| ...  | ...      | ...          | ...     | ...    | ...           | ...     | ...                                               | ...      | ...   | ...    | ...     | ...   | ...    | ...  | ...       | ...      |
+| 2239 | NaN      | service      | NaN     | False  | True          | 21.897  | LINESTRING (139701.620 455614.724, 139708.832 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 2240 | 0.421     | 0.107    |
+| 2240 | NaN      | service      | NaN     | False  | False         | 26.681  | LINESTRING (139717.613 455660.636, 139708.832 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 2241 | 0.382     | 0.130    |
+| 2241 | NaN      | footway      | NaN     | False  | False         | 40.705  | LINESTRING (140435.720 454723.291, 140465.012 ... | NaN      | NaN   | NaN    | NaN     | NaN   | NaN    | 2242 | 0.258     | 0.096    |
+
 
 ### **get_landcover_percentages**
 This function calculates the percentage of area that is covered by each landcover class for an area of interest. Users should provide PoIs either in a geopackage vector file format or a geodataframe, ideally with a projected Coordinate Reference System (CRS).
